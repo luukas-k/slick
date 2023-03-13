@@ -47,11 +47,13 @@ namespace Slick::Gfx {
 
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		glDebugMessageCallback([](GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam) {
-			// Buffer detailed info: Buffer object 2 (bound to GL_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) 
-			// will use VIDEO memory as the source for buffer object operations.
+			// Buffer detailed info
 			if(id == 131185) 
 				return;
-			Utility::Assert(false, "[", id, "]: ", message);
+			// Shader Recompiled
+			if(id == 131218) 
+				return;
+			Utility::Log(false, "[", id, "]: ", message);
 		}, nullptr);
 		
 		glfwSetWindowUserPointer(mHandle, this);

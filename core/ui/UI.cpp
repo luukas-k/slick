@@ -310,7 +310,7 @@ namespace Slick::UI{
 
 	void render(UIContext* ctx, UIElement& e) {
 		auto draw_vp = [&](Gfx::Viewport vp, Math::fVec3 color) {
-			ctx->renderer.draw_rect(
+			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
 				{0.f, 0.f}, {1.f, 1.f},
@@ -368,7 +368,10 @@ namespace Slick::UI{
 		s_Context->renderer.on_resize(s_Context->data.vp);
 		// display_hierarchy(s_Context->root, 0);
 		relayout(s_Context, s_Context->root, {});
+
+		s_Context->renderer.begin();
 		render(s_Context, s_Context->root);
+		s_Context->renderer.end();
 	}
 
 	bool is_hovered(Gfx::Viewport vp) {

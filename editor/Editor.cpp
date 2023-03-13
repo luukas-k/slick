@@ -62,6 +62,28 @@ struct PBRMaterial {
 	i32 normalTexture;
 };
 
+float clamp(float min, float max, float v) {
+	if(v < min) return min;
+	if(v > max) return max;
+	return v;
+}
+
+struct BoundingBox {
+	Math::fVec3 min, max;
+
+	float sq_distance(Math::fVec3 p) {
+		Math::fVec3 p2{
+			clamp(min.x, max.x, p.x),
+			clamp(min.y, max.y, p.y),
+			clamp(min.z, max.z, p.z)
+		};
+		float dx = p2.x - p.x;
+		float dy = p2.y - p.y;
+		float dz = p2.z - p.z;
+		return dx * dx + dy * dy + dz * dz;
+	}
+};
+
 struct RenderCommand {
 	u32 posBuffer, posOffset;
 	Format posFormat;
@@ -180,7 +202,7 @@ public:
 
 				auto& posAcc = gltf.accessors[prim.attribute_position];
 				auto& posBufView = gltf.buffer_views[posAcc.buffer_view];
-
+				
 				rc.posBuffer = buffer_ids[posBufView.buffer];
 				rc.posOffset = posBufView.offset;
 				rc.posFormat = format_from_ctype_and_type(posAcc.component_type, posAcc.type);
@@ -256,7 +278,7 @@ public:
 		data->vp = {0, 0, w, h};
 
 		glViewport(0, 0, w, h);
-		glClearColor(173.f / 255.f, 216.f / 255.f, 230.f / 255.f, 1.f);
+		glClearColor(0.f, 0.f, 0.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glEnable(GL_BLEND);
@@ -266,7 +288,6 @@ public:
 		glDepthFunc(GL_LEQUAL);
 		
 		glEnable(GL_CULL_FACE);
-
 
 		auto& cam = mEditorScene.camera();
 		Math::fMat4 proj = cam.projection((float)w / h);

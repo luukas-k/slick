@@ -123,11 +123,11 @@ void main(){
 	
     vec3 color = ambient + Lo;
 
-    // color = color / (color + vec3(1.0));
-    // color = pow(color, vec3(1.0 / 2.2));
-    if(get_alpha() < 0.1)
-        discard;
+    // if(get_alpha() < 0.5)
+    //    discard;
 
-	rColor = vec4(color, 1.0);
+    color = color / (color + vec3(1.0));
+    // color = pow(color, vec3(1.0 / 2.2));
+	rColor = vec4(color, get_alpha());
 }
 
