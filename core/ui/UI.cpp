@@ -10,8 +10,6 @@
 
 #include "stb_truetype.h"
 
-#include "graphics/Font.h"
-
 namespace Slick::UI {
 	
 	enum struct ElementType {
@@ -74,7 +72,6 @@ namespace Slick::UI{
 		UIElement root;
 		UIData data;
 		UIElement* current;
-		Gfx::UIFont font;
 		i32 screen_w, screen_h;
 		Gfx::Renderer2D renderer;
 	};
@@ -93,7 +90,6 @@ namespace Slick::UI{
 			},
 			.data = {},
 			.current = nullptr,
-			.font = Gfx::UIFont("font/Roboto-Regular.ttf"),
 			.screen_w = 0, .screen_h = 0,
 			.renderer = Gfx::Renderer2D()
 		};
@@ -169,8 +165,7 @@ namespace Slick::UI{
 			}
 			case ElementType::Button: 
 			{
-				auto[w, h] = s_Context->font.text_metrics(s_Context->data.vp, e.label);
-				return {0, 0, w, h};
+				return {0, 0, (i32)e.label.size() * 25, 20};
 			}
 			case ElementType::Window:
 			{

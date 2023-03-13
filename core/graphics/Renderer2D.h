@@ -2,7 +2,6 @@
 
 #include "Core.h"
 
-#include "Font.h"
 #include "Viewport.h"
 #include "math/Vec.h"
 
