@@ -2,6 +2,10 @@
 /obj
 /.vs
 
+/model/bollard*
+/model/slick_texture.png
+/model/sponza*
+
 *.exe
 *.vcxproj*
 *.sln
