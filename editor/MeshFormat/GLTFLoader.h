@@ -36,6 +36,7 @@ namespace Slick::Editor {
 		u32 count;
 		GLTFElementType component_type;
 		GLTFType type;
+		Math::fVec3 min, max;
 	};
 
 	struct GLTFBufferView {

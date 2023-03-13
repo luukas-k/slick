@@ -45,6 +45,16 @@ Slick::Editor::GLTFScene Slick::Editor::load_gltf(const std::string& fname) {
         accessor.buffer_view = acc["bufferView"];
         accessor.count = acc["count"];
         
+        if(acc.contains("max")) 
+            accessor.max = { acc["max"][0], acc["max"][1], acc["max"][2] };
+        else
+            accessor.max = {0.f, 0.f, 0.f};
+        
+        if(acc.contains("min")) 
+            accessor.max = { acc["min"][0], acc["min"][1], acc["min"][2] };
+        else
+            accessor.max = {0.f, 0.f, 0.f};
+
         u32 cType = acc["componentType"];
         if(cType == 5126)           accessor.component_type = GLTFElementType::FLOAT;
         else if(cType == 5123)           accessor.component_type = GLTFElementType::UNSIGNED_SHORT;
