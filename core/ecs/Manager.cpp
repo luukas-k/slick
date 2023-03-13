@@ -3,7 +3,7 @@
 namespace Slick::ECS {
 	
 	u32 gen_id() {
-		u32 id = 1;
+		static u32 id = 1;
 		return id++;
 	}
 

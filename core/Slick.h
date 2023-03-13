@@ -19,3 +19,7 @@
 
 #include "math/Mat.h"
 #include "math/Vec.h"
+
+#include "components/Transform.h"
+#include "components/Renderable.h"
+

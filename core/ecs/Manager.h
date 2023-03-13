@@ -32,7 +32,10 @@ namespace Slick::ECS {
 
 		template<typename T>
 		T* get_component(u32 eid) {
-			return (T*)mEntities[eid].components[type_id<T>()].data;
+			if (mEntities[eid].components.contains(type_id<T>())) {
+				return (T*)mEntities[eid].components[type_id<T>()].data;
+			}
+			return nullptr;
 		}
 
 		template<typename T>
@@ -45,7 +48,7 @@ namespace Slick::ECS {
 			for (auto& [eid, cdata] : mEntities) {
 				std::tuple<T*...> t = get_data<T...>(cdata);
 				if (is_valid<T...>(t)) {
-					fn(std::get<T*>(t)...);
+					fn(eid, std::get<T*>(t)...);
 				}
 			}
 		}
@@ -63,7 +66,10 @@ namespace Slick::ECS {
 
 		template<typename T>
 		T* get(Components& c) {
-			return c.components.contains(type_id<T>()) ? (T*)c.components[type_id<T>()].data : nullptr;
+			if (c.components.contains(type_id<T>())) {
+				return (T*)c.components[type_id<T>()].data;
+			}
+			return nullptr;
 		}
 
 		template<typename...T>

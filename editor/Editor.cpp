@@ -52,6 +52,27 @@ u32 format_count(Format f) {
 	return 0;
 }
 
+Format format_from_ctype_and_type(Editor::GLTFElementType ct, Editor::GLTFType t) {
+	if (ct == Editor::GLTFElementType::FLOAT) {
+		if (t == Editor::GLTFType::VEC4) {
+			return Format::Float4;
+		}
+		else if (t == Editor::GLTFType::VEC3) {
+			return Format::Float3;
+		}
+		else if (t == Editor::GLTFType::VEC2) {
+			return Format::Float2;
+		}
+	}
+	else if (ct == Editor::GLTFElementType::UNSIGNED_SHORT) {
+		if (t == Editor::GLTFType::SCALAR) {
+			return Format::UInt16;
+		}
+	}
+	Utility::Assert(false);
+	return Format::Unknown;
+};
+
 struct PBRMaterial {
 	Math::fVec3 baseColor;
 	i32 baseColorTexture;
@@ -109,6 +130,8 @@ public:
 		:
 		mProgram("shader/vs.glsl", "shader/fs.glsl")
 	{
+		auto& mgr = mEditorScene.manager();
+		
 		UI::create_context();
 
 		auto& cam = mEditorScene.camera();
@@ -148,26 +171,6 @@ public:
 			texture_ids.push_back(texId);
 		}
 
-		auto format_from_ctype_and_type = [](Editor::GLTFElementType ct, Editor::GLTFType t) {
-			if (ct == Editor::GLTFElementType::FLOAT) {
-				if (t == Editor::GLTFType::VEC4) {
-					return Format::Float4;
-				}
-				else if (t == Editor::GLTFType::VEC3) {
-					return Format::Float3;
-				}
-				else if (t == Editor::GLTFType::VEC2) {
-					return Format::Float2;
-				}
-			}
-			else if (ct == Editor::GLTFElementType::UNSIGNED_SHORT) {
-				if (t == Editor::GLTFType::SCALAR) {
-					return Format::UInt16;
-				}
-			}
-			Utility::Assert(false);
-			return Format::Unknown;
-		};
 
 		for (auto& mesh : gltf.meshes) {
 			for (auto& prim : mesh.primitives) {
@@ -236,6 +239,12 @@ public:
 				rc.indexFormat = format_from_ctype_and_type(indexAcc.component_type, indexAcc.type);
 				rc.indexCount = indexAcc.count;
 
+				u32 ent = mgr.create();
+				TransformComponent* tf = mgr.add_component<TransformComponent>(ent);
+				tf->position = {0.f, 0.f, 0.f};
+				RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
+				rcc->render_command = (u32)mRenderCommands.size();
+
 				mRenderCommands.push_back(rc);
 			}
 		}
@@ -292,7 +301,6 @@ public:
 		auto& cam = mEditorScene.camera();
 		Math::fMat4 proj = cam.projection((float)w / h);
 		Math::fMat4 view = cam.view();
-		Math::fMat4 model = Math::rotation_y(0.f * mLastUpdate) * Math::scale({0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f});
 
 		mProgram.bind();
 		
@@ -300,10 +308,19 @@ public:
 
 		mProgram.set_uniform_m4("sys_proj", proj);
 		mProgram.set_uniform_m4("sys_view", view);
-		mProgram.set_uniform_m4("sys_model", model);
+
+		
 
 		glBindVertexArray(vao);
-		for (auto& rc : mRenderCommands) {
+
+		mEditorScene.manager().view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
+			if(rrc->render_command >= mRenderCommands.size())
+				return;
+
+			auto& rc = mRenderCommands[rrc->render_command];
+
+			Math::fMat4 model = Math::translation(tc->position) * Math::scale({0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f});
+			mProgram.set_uniform_m4("sys_model", model);
 
 			if (rc.material.baseColorTexture == -1) {
 				// No texture
@@ -361,7 +378,7 @@ public:
 			
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indexBuffer);
 			glDrawElements(GL_TRIANGLES, rc.indexCount, format_type(rc.indexFormat), (const void*)rc.indexOffset);
-		}
+		});
 
 		UI::frame([&]() {
 			UI::window("Window0", [&]() {
@@ -373,6 +390,10 @@ public:
 				});
 				UI::container("cont2", [&]() {
 					if (UI::button("Toggle normal maps.")) {
+						/*mEditorScene.manager().view<TransformComponent>([](u32 eid, TransformComponent* tc) {
+							auto r = [](){ return (float)rand() / RAND_MAX; };
+							tc->position = {r() * 10.f, r() * 10.f, r() * 10.f};
+						});*/
 					}
 					if (UI::button("Hello2")) {
 						Utility::Log("HelloC");

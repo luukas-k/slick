@@ -15,6 +15,7 @@ namespace Slick::App {
 
 		void update(float dt);
 
+		inline ECS::Manager& manager() { return mManager; }
 		inline Gfx::Camera& camera() { return mCamera; }
 	private:
 		ECS::Manager mManager;
