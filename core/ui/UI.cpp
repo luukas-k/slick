@@ -16,7 +16,9 @@ namespace Slick::UI {
 		Root,
 		Window,
 		Container,
-		Button
+		Button,
+		Slider,
+		TreeNode
 	};
 	
 	enum struct ContainerLayout {
@@ -56,6 +58,11 @@ namespace Slick::UI{
 	struct UIButton {
 	};
 
+	struct UISlider {
+		float min, max;
+		float value;
+	};
+
 	struct UIElement {
 		ElementType type;
 		bool is_new;
@@ -66,6 +73,7 @@ namespace Slick::UI{
 		bool hovered, clicked, released, handled;
 		
 		UIContainer as_container;
+		UISlider as_slider;
 	};
 
 	struct UIContext {
@@ -74,9 +82,34 @@ namespace Slick::UI{
 		UIElement* current;
 		i32 screen_w, screen_h;
 		Gfx::Renderer2D renderer;
+		std::unordered_map<std::string, u32> textures;
 	};
 
 	UIContext* s_Context = nullptr;
+
+	u32 get_texture(const std::string& name) {
+		if (s_Context->textures.contains(name)) {
+			return s_Context->textures[name];
+		}
+
+		i32 w{}, h{}, c{};
+		u8* data = stbi_load(name.c_str(), &w, &h, &c, 4);
+			
+		u32 id{0};
+		glGenTextures(1, &id);
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		stbi_image_free(data);
+
+		s_Context->textures[name] = id;
+
+		return id;
+	}
 
 	UIData* create_context() {
 		s_Context = new UIContext{
@@ -161,11 +194,7 @@ namespace Slick::UI{
 				for (auto& c : e.children) {
 					return calculate_size(c);
 				}
-				return {0, 0, 0,0};
-			}
-			case ElementType::Button: 
-			{
-				return {0, 0, (i32)e.label.size() * 25, 20};
+				return {0, 0, 0, 0};
 			}
 			case ElementType::Window:
 			{
@@ -220,6 +249,14 @@ namespace Slick::UI{
 					Utility::Assert(false, "Unknown layout.");
 				}
 			}
+			case ElementType::Button: 
+			{
+				return {0, 0, (i32)e.label.size() * 25, 20};
+			}
+			case ElementType::Slider:
+			{
+				return {0, 0, 100, 20};
+			}
 		}
 		Utility::Assert(false, "Unknown type.");
 		return {0, 0, 0, 0};
@@ -240,7 +277,7 @@ namespace Slick::UI{
 				for (auto& r : e.children) {
 					relayout(ctx, r, e.vp);
 				}
-				break;
+				return;
 			}
 			case ElementType::Window:
 			{
@@ -269,8 +306,9 @@ namespace Slick::UI{
 				else {
 					Utility::Assert(false, "Unknown layout.");
 				}
-				break;
+				return;
 			}
+			case ElementType::TreeNode: 
 			case ElementType::Container: 
 			{
 				auto[cx, cy, ew, eh] = calculate_size(e);
@@ -297,15 +335,23 @@ namespace Slick::UI{
 				else {
 					Utility::Assert(false, "Unknown layout.");
 				}
-				break;
+				return;
 			}
 			case ElementType::Button: 
 			{
 				auto[x, y, w, h] = calculate_size(e);
 				e.vp = vp.left(w).top(h);
-				break;
+				return;
+			}
+			case ElementType::Slider: 
+			{
+				auto[x, y, w, h] = calculate_size(e);
+				e.vp = vp.left(w).top(h);
+				return;
 			}
 		}
+
+		Utility::Assert(false, "Unknown type.");
 	}
 
 	void render(UIContext* ctx, UIElement& e) {
@@ -313,8 +359,15 @@ namespace Slick::UI{
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
-				{0.f, 0.f}, {1.f, 1.f},
 				color
+			);
+		};
+		auto draw_tex = [&](Gfx::Viewport vp, const std::string& name) {
+			ctx->renderer.submit_rect(
+				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
+				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
+				{0.f, 0.f}, {1.f, 1.f},
+				get_texture("icon/" + name)
 			);
 		};
 
@@ -329,12 +382,12 @@ namespace Slick::UI{
 			case ElementType::Window: 
 			{
 				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport close = header.right(25);
+				Gfx::Viewport close = header.right(25).shrink(1, 1, 1, 1);
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 				
 				draw_vp(content, e.as_container.color);
 				draw_vp(header, {.2f, .2f, .2f});
-				draw_vp(close, {.6f, 0.f, 0.f});
+				draw_tex(close, "cross.png");
 
 				for (auto& c : e.children) {
 					render(ctx, c);
@@ -359,7 +412,20 @@ namespace Slick::UI{
 				draw_vp(button_container.shrink(4, 4, 4, 4), color);
 				return;
 			}
+			case ElementType::Slider: 
+			{
+				Gfx::Viewport slider_container = e.vp;
+				float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
+
+				Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
+
+				draw_vp(slider_container, {0.2f, 0.2f, 0.2f});
+				draw_vp(slider_grabber, {0.4f, 0.2f, 0.2f});
+				return;
+			}
 		}
+
+		Utility::Assert(false, "Unknown type.");
 	}
 
 	void end_frame() {
@@ -400,6 +466,34 @@ namespace Slick::UI{
 			elem->clicked = false;
 
 		return false;
+	}
+
+	void slider(const std::string& label, float min, float max, float& v) {
+		UIElement* elem = get_or_create(ElementType::Slider, label);
+		elem->as_slider.min = min;
+		elem->as_slider.max = max;
+		elem->as_slider.value = v;
+	}
+
+	bool begin_tree(const std::string& label) {
+		UIElement* elem = get_or_create(ElementType::TreeNode, label);
+		elem->hovered = is_hovered(elem->vp);
+
+		if (elem->is_new) {
+			elem->as_container.is_open = true;
+			elem->is_new = false;
+			elem->as_container.color = {(float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX};
+		}
+
+		if (elem->as_container.is_open) {
+			set_current(elem);
+			return true;
+		}
+		return false;
+	}
+
+	void end_tree() {
+		set_current_as_parent();
 	}
 
 	bool begin_container(const std::string& label) {

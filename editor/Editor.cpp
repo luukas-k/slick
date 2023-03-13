@@ -387,6 +387,8 @@ public:
 						glUseProgram(mProgram.id());
 						mProgram.set_uniform_f3("light_pos", cam.pos());
 					}
+					float v{(sinf(mLastUpdate) + 1.f) * 0.5f * 10.f};
+					UI::slider("Hello", 0.f, 10.f, v);
 				});
 				UI::container("cont2", [&]() {
 					if (UI::button("Toggle normal maps.")) {

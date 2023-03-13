@@ -12,6 +12,7 @@ namespace Slick::Gfx {
 		inline Viewport right(i32 n) { return Viewport{ x + w - n, y, n, h }; }
 		inline Viewport top(i32 n) { return Viewport{ x, y + h - n, w, n	}; }
 		inline Viewport bottom(i32 n) { return Viewport{ x, y, w, n }; }
+		inline Viewport offset(i32 dx, i32 dy) { return Viewport{ x + dx, y + dy, w, h };  }
 		inline bool contains(i32 cx, i32 cy){ return (cx > x) && (cy > y) && (cx < (x + w)) && (cy < (y + h)); }
 	};
 

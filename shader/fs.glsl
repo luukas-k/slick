@@ -46,6 +46,7 @@ uniform int mat_has_normal = 0;
 uniform sampler2D mat_normal_map;
 
 vec3 get_normal(){
+    // return fNormal;
     if(mat_has_normal == 1){
         return normalize(fTBN * (texture(mat_normal_map, fUV).xyz * 2.0 - 1.0));
     }
