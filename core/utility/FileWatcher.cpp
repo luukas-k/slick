@@ -19,7 +19,8 @@ namespace Slick::Utility {
 						}
 					}
 				}
-				std::this_thread::yield();
+				using namespace std::chrono_literals;
+				std::this_thread::sleep_for(2s);
 			}
 		});
 	}
