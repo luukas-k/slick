@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include "utility/Timer.h"
+
 namespace Slick::App{
 
 	Application::Application() 
@@ -23,6 +25,9 @@ namespace Slick::App{
 	Application::~Application() {}
 
 	void Application::run() {
+		u32 i = 0;
+		Utility::Timer frame_timer;
+
 		while (!mSurface.should_close()) {
 			mSurface.update();
 			for (auto& ld : mLayers) {
@@ -32,6 +37,13 @@ namespace Slick::App{
 				ld.on_render(ld.data, mSurface.width(), mSurface.height());
 			}
 			mSurface.present();
+
+			i++;
+			if (i == 5000) {
+				float t = frame_timer.elapsed() / 5000;
+				Utility::Log(1. / t, t);
+				i = 0;
+			}
 		}
 	}
 
