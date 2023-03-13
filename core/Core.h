@@ -9,6 +9,8 @@
 #include <fstream>
 #include <assert.h>
 #include <array>
+#include <mutex>
+#include <thread>
 
 namespace Slick {
 	
