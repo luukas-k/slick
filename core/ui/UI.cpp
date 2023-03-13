@@ -93,6 +93,7 @@ namespace Slick::UI{
 		}
 
 		i32 w{}, h{}, c{};
+		stbi_set_flip_vertically_on_load(true);
 		u8* data = stbi_load(name.c_str(), &w, &h, &c, 4);
 			
 		u32 id{0};
@@ -225,6 +226,7 @@ namespace Slick::UI{
 			}
 			case ElementType::Container:
 			{
+				Gfx::Viewport content{};
 				if (e.as_container.layout == ContainerLayout::Horizontal) {
 					i32 w = 0, h = 0;
 					for (auto& c : e.children) {
@@ -233,7 +235,7 @@ namespace Slick::UI{
 						if(ch > h)
 							h = ch;
 					}
-					return {0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10};
+					content = {0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10};
 				}
 				else if (e.as_container.layout == ContainerLayout::Vertical) {
 					i32 w = 0, h = 0;
@@ -243,11 +245,13 @@ namespace Slick::UI{
 						if(cw > w)
 							w = cw;
 					}
-					return {0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10};
+					content = {0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10};
 				}
 				else {
 					Utility::Assert(false, "Unknown layout.");
 				}
+
+				return content.grow(0, 0, 25, 0);
 			}
 			case ElementType::Button: 
 			{
@@ -314,7 +318,8 @@ namespace Slick::UI{
 				auto[cx, cy, ew, eh] = calculate_size(e);
 
 				e.vp = Gfx::Viewport{vp.x, vp.y + vp.h - eh, ew, eh};
-				Gfx::Viewport content = e.vp;
+				Gfx::Viewport header = e.vp.top(25);
+				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
 				if (e.as_container.layout == ContainerLayout::Vertical) {
 					auto current = content.shrink(5, 5, 5, 5);
@@ -396,8 +401,13 @@ namespace Slick::UI{
 			}
 			case ElementType::Container: 
 			{
-				Gfx::Viewport content = e.vp;
+				Gfx::Viewport header = e.vp.top(25);
+				Gfx::Viewport minimize = header.right(25);
+				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+
+				draw_vp(header, {0.3f, 0.2f, 0.2f});
 				draw_vp(content, e.as_container.color);
+				draw_tex(minimize, "minimize.png");
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
@@ -428,12 +438,26 @@ namespace Slick::UI{
 		Utility::Assert(false, "Unknown type.");
 	}
 
+	void update(UIContext* ctx, UIElement& e) {
+		switch (e.type) {
+			case ElementType::Button:
+			{
+				break;
+			}
+		}
+
+		for (auto& c : e.children) {
+			update(ctx, c);
+		}
+	}
+
 	void end_frame() {
 		Utility::Assert(s_Context->current == &s_Context->root);
 
 		s_Context->renderer.on_resize(s_Context->data.vp);
 		// display_hierarchy(s_Context->root, 0);
 		relayout(s_Context, s_Context->root, {});
+		update(s_Context, s_Context->root);
 
 		s_Context->renderer.begin();
 		render(s_Context, s_Context->root);

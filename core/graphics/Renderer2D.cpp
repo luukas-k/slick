@@ -14,7 +14,8 @@ namespace Slick::Gfx {
 		mShader("shader/vs2d.glsl", "shader/fs2d.glsl"),
 		mVertexBuffer(0),
 		mCurrentVertexBufferSize(0),
-		mActiveTextureCount(0)
+		mActiveTextureCount(0),
+		mCurrentTextures({})
 	{
 		glGenBuffers(1, &mVertexBuffer);
 	}
@@ -32,6 +33,8 @@ namespace Slick::Gfx {
 		u32 vao{};
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
+
+		glEnable(GL_BLEND);
 
 		// Draw
 		glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
