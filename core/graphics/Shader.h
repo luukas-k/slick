@@ -4,6 +4,7 @@
 
 #include "math/Vec.h"
 #include "math/Mat.h"
+#include "utility/FileWatcher.h"
 
 namespace Slick::Gfx {
 
@@ -22,10 +23,14 @@ namespace Slick::Gfx {
 		
 		void set_uniform_i1(const std::string& name, i32 v);
 	private:
+		void update_program();
 		i32 uniform_location(const std::string& name);
 
 	private:
 		u32 mProgram;
+		bool mShouldUpdate;
+		std::string mVsFile, mFsFile;
+		Utility::FileWatcher mMonitor;
 	};
 
 }
