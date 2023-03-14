@@ -45,13 +45,29 @@ Slick::Editor::GLTFScene Slick::Editor::load_gltf(const std::string& fname) {
         accessor.buffer_view = acc["bufferView"];
         accessor.count = acc["count"];
         
-        if(acc.contains("max")) 
-            accessor.max = { acc["max"][0], acc["max"][1], acc["max"][2] };
+        if (acc.contains("max")) {
+            if(acc["max"].size() == 3)
+                accessor.max = { acc["max"][0], acc["max"][1], acc["max"][2] };
+            else if(acc["max"].size() == 2)
+                accessor.max = { acc["max"][0], acc["max"][1], 0.f };
+            else if(acc["max"].size() == 1)
+                accessor.max = { acc["max"][0], 0.f, 0.f };
+            else 
+                Utility::Assert(false);
+        }
         else
             accessor.max = {0.f, 0.f, 0.f};
         
-        if(acc.contains("min")) 
-            accessor.max = { acc["min"][0], acc["min"][1], acc["min"][2] };
+        if (acc.contains("min")) {
+            if(acc["min"].size() == 3)
+                accessor.min = { acc["min"][0], acc["min"][1], acc["min"][2] };
+            else if(acc["min"].size() == 2)
+                accessor.min = { acc["min"][0], acc["min"][1], 0.f };
+            else if(acc["min"].size() == 1)
+                accessor.min = { acc["min"][0], 0.f, 0.f };
+            else 
+                Utility::Assert(false);
+        }
         else
             accessor.max = {0.f, 0.f, 0.f};
 

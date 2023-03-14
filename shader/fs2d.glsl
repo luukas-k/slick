@@ -9,11 +9,15 @@ uniform sampler2D sys_textures[16];
 
 out vec4 rColor;
 
-void main(){
+vec4 get_color(){
 	if(fTextureIndex >= -0.5){
-		rColor = texture(sys_textures[int(fTextureIndex)], fUV);
+		return texture(sys_textures[int(fTextureIndex)], fUV);
 	}
 	else{
-		rColor = vec4(fColor, 1.0);
+		return vec4(fColor, 1.0);
 	}
+}
+
+void main(){
+	rColor = get_color();
 }

@@ -106,19 +106,19 @@ struct BoundingBox {
 };
 
 struct RenderCommand {
-	u32 posBuffer, posOffset;
+	i32 posBuffer, posOffset;
 	Format posFormat;
 
-	u32 normalBuffer, normalOffset;
+	i32 normalBuffer, normalOffset;
 	Format normalFormat;
 	
-	u32 tangentBuffer, tangentOffset;
+	i32 tangentBuffer, tangentOffset;
 	Format tangentFormat;
 
-	u32 uvBuffer, uvOffset;
+	i32 uvBuffer, uvOffset;
 	Format uvFormat;
 
-	u32 indexBuffer, indexOffset, indexCount;
+	i32 indexBuffer, indexOffset, indexCount;
 	Format indexFormat;
 
 	PBRMaterial material;
@@ -136,6 +136,8 @@ public:
 
 		auto& cam = mEditorScene.camera();
 		cam.set_position({0.f, 0.f, 20.f});
+
+		// auto gun_gltf = Editor::load_gltf("model/gun/gun.gltf");
 
 		auto gltf = Editor::load_gltf("model/sponza.gltf");
 
@@ -170,7 +172,6 @@ public:
 
 			texture_ids.push_back(texId);
 		}
-
 
 		for (auto& mesh : gltf.meshes) {
 			for (auto& prim : mesh.primitives) {
@@ -217,12 +218,19 @@ public:
 				rc.normalOffset = normBufView.offset;
 				rc.normalFormat = format_from_ctype_and_type(normAcc.component_type, normAcc.type);
 
-				auto& tangAcc = gltf.accessors[prim.attribute_tangent];
-				auto& tangBufView = gltf.buffer_views[tangAcc.buffer_view];
+				if(prim.attribute_tangent != -1){
+					auto& tangAcc = gltf.accessors[prim.attribute_tangent];
+					auto& tangBufView = gltf.buffer_views[tangAcc.buffer_view];
 				
-				rc.tangentBuffer = buffer_ids[tangBufView.buffer];
-				rc.tangentOffset = tangBufView.offset;
-				rc.tangentFormat = format_from_ctype_and_type(tangAcc.component_type, tangAcc.type);
+					rc.tangentBuffer = buffer_ids[tangBufView.buffer];
+					rc.tangentOffset = tangBufView.offset;
+					rc.tangentFormat = format_from_ctype_and_type(tangAcc.component_type, tangAcc.type);
+				}
+				else {
+					rc.tangentBuffer = -1;
+					rc.tangentOffset = -1;
+					rc.tangentFormat = Format::Unknown;
+				}
 
 				auto& uvAcc = gltf.accessors[prim.attribute_texcoord];
 				auto& uvBufView = gltf.buffer_views[uvAcc.buffer_view];
@@ -267,6 +275,7 @@ public:
 	u32 mFrames{0};
 	void fixed_update(float dt) {
 		mInput.update();
+		mEditorScene.update(dt);
 
 		Math::fVec3 movement{
 			mInput.key_state(Input::Key::Key_A) * -1.f + mInput.key_state(Input::Key::Key_D) * 1.f,
@@ -371,7 +380,9 @@ public:
 				mProgram.set_uniform_i1("mat_has_normal", 1);
 			}
 
-			auto enable_attribute = [](u32 index, u32 buffer, Format fmt, u32 offset) {
+			auto enable_attribute = [](u32 index, i32 buffer, Format fmt, u32 offset) {
+				if(buffer == -1) return;
+
 				glBindBuffer(GL_ARRAY_BUFFER, buffer);
 				glEnableVertexAttribArray(index);
 				glVertexAttribPointer(index, format_count(fmt), format_type(fmt), false, 0, (const void*)offset);
