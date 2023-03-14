@@ -58,8 +58,9 @@ float get_alpha(){
 }
 
 // Lights
-uniform vec3 light_color = vec3(1.0, 1.0, 1.0);
-uniform vec3 light_pos = vec3(5, 5, 5);
+uniform vec3 light_colors[16];
+uniform vec3 light_positions[16];
+uniform int light_count = 0; 
 
 out vec4 rColor;
 
@@ -95,7 +96,10 @@ void main(){
 
     vec3 Lo = vec3(0.0);
 
-	for(int i = 0; i < 1; i++){
+	for(int i = 0; i < light_count; i++){
+        vec3 light_color = light_colors[i];
+        vec3 light_pos = light_positions[i];
+        
         vec3 L = normalize(light_pos - fPosition);
         vec3 H = normalize(V + L);
         float dist = length(light_pos - fPosition);
@@ -119,7 +123,7 @@ void main(){
 
         Lo += (kD * get_base_color() / PI + spec) * radiance * ndotl;
     }
-
+    
     vec3 ambient = vec3(0.03) * get_base_color();
 	
     vec3 color = ambient + Lo;
@@ -129,6 +133,7 @@ void main(){
 
     color = color / (color + vec3(1.0));
     // color = pow(color, vec3(1.0 / 2.2));
+
 	rColor = vec4(color, get_alpha());
 }
 

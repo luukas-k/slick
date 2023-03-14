@@ -22,4 +22,4 @@
 
 #include "components/Transform.h"
 #include "components/Renderable.h"
-
+#include "components/Light.h"

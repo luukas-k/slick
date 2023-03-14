@@ -309,9 +309,15 @@ public:
 		mProgram.set_uniform_m4("sys_proj", proj);
 		mProgram.set_uniform_m4("sys_view", view);
 
-		
-
 		glBindVertexArray(vao);
+
+		u32 i = 0;
+		mEditorScene.manager().view<TransformComponent, LightComponent>([&](u32 ent, TransformComponent* tc, LightComponent* lc) {
+			mProgram.set_uniform_f3("light_positions[" + std::to_string(i) + "]", tc->position);
+			mProgram.set_uniform_f3("light_colors[" + std::to_string(i) + "]", lc->color);
+			i++;
+			mProgram.set_uniform_i1("light_count", i);
+		});
 
 		mEditorScene.manager().view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
 			if(rrc->render_command >= mRenderCommands.size())
@@ -391,11 +397,13 @@ public:
 					UI::slider("Hello", 0.f, 10.f, v);
 				});
 				UI::container("cont2", [&]() {
-					if (UI::button("Toggle normal maps.")) {
-						/*mEditorScene.manager().view<TransformComponent>([](u32 eid, TransformComponent* tc) {
-							auto r = [](){ return (float)rand() / RAND_MAX; };
-							tc->position = {r() * 10.f, r() * 10.f, r() * 10.f};
-						});*/
+					if (UI::button("Add light.")) {
+						auto& mgr = mEditorScene.manager();
+						u32 ent = mgr.create();
+						TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
+						tc->position = mEditorScene.camera().pos();
+						LightComponent* lc = mgr.add_component<LightComponent>(ent);
+						lc->color = {1.f, 1.f, 1.f};
 					}
 					if (UI::button("Hello2")) {
 						Utility::Log("HelloC");
