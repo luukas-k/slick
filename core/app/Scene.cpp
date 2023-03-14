@@ -9,7 +9,7 @@ namespace Slick::App {
 	}
 
 	void Scene::update(float dt) {
-
+		mManager.update_systems();
 	}
 
 }
