@@ -54,6 +54,20 @@ namespace Slick::ECS {
 		}
 
 		inline u32 entity_count() const { return (u32)mEntities.size(); }
+
+		template<typename...T, typename System>
+		void register_system(System& system) {
+			mSystems.push_back(SystemData{
+				.data = &system,
+				.on_update = [](void* ptr, Manager& mgr){ ((System*)ptr)->update(mgr); }
+			});
+		}
+
+		inline void update_systems() {
+			for (auto& sys : mSystems) {
+				sys.on_update(sys.data, *this);
+			}
+		}
 	private:
 		u32 mCount;
 		struct Component {
@@ -63,6 +77,11 @@ namespace Slick::ECS {
 			std::unordered_map<u32, Component> components;
 		};
 		std::unordered_map<u32, Components> mEntities;
+		struct SystemData {
+			void* data;
+			void(*on_update)(void*, Manager&);
+		};
+		std::vector<SystemData> mSystems;
 
 		template<typename T>
 		T* get(Components& c) {
