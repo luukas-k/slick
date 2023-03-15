@@ -24,6 +24,13 @@ namespace Slick::Math {
 		};
 	}
 
+	inline fVec2 operator+(const fVec2& lhs, const fVec2& rhs) {
+		return fVec2{
+			lhs.x + rhs.x, 
+			lhs.y + rhs.y, 
+		};
+	}
+
 	struct fVec3 {
 		float x, y, z;
 	};
