@@ -5,7 +5,7 @@
 namespace Slick {
 
 	struct RenderableComponent {
-		u32 render_command;
+		u32 mesh, material;
 	};
 
 }

@@ -121,7 +121,18 @@ struct RenderCommand {
 	i32 indexBuffer, indexOffset, indexCount;
 	Format indexFormat;
 
-	PBRMaterial material;
+	// PBRMaterial material;
+};
+
+class RenderSystem {
+public:
+	RenderSystem(){}
+	~RenderSystem(){}
+
+	void update(App::Scene& scene) {
+		
+	}
+private:
 };
 
 class EditorLayer {
@@ -135,11 +146,12 @@ public:
 		UI::create_context();
 
 		auto& cam = mEditorScene.camera();
-		cam.set_position({0.f, 0.f, 20.f});
+		cam.set_position({0.f, 0.f, 3.f});
 
 		// auto gun_gltf = Editor::load_gltf("model/gun/gun.gltf");
 
 		auto gltf = Editor::load_gltf("model/sponza.gltf");
+		// auto gltf = Editor::load_gltf("model/bollard.gltf");
 
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -179,7 +191,8 @@ public:
 
 				auto& mat = gltf.materials[prim.material];
 				
-				rc.material = PBRMaterial{
+				// rc.material = 
+				PBRMaterial material{
 					.baseColor = mat.base_color,
 					.baseColorTexture = -1,
 					.metallic = mat.metallic,
@@ -191,17 +204,17 @@ public:
 				if (mat.base_color_texture != -1) {
 					auto& tex = gltf.textures[mat.base_color_texture];
 					u32 texid = texture_ids[tex.source];
-					rc.material.baseColorTexture = texid;
+					material.baseColorTexture = texid;
 				}
 				if (mat.metallic_roughness_texture != -1) {
 					auto& tex = gltf.textures[mat.metallic_roughness_texture];
 					u32 texid = texture_ids[tex.source];
-					rc.material.metallicRoughnessTexture = texid;
+					material.metallicRoughnessTexture = texid;
 				}
 				if (mat.normal_texture != -1) {
 					auto& tex = gltf.textures[mat.normal_texture];
 					u32 texid = texture_ids[tex.source];
-					rc.material.normalTexture = texid;
+					material.normalTexture = texid;
 				}
 
 				auto& posAcc = gltf.accessors[prim.attribute_position];
@@ -251,9 +264,11 @@ public:
 				TransformComponent* tf = mgr.add_component<TransformComponent>(ent);
 				tf->position = {0.f, 0.f, 0.f};
 				RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
-				rcc->render_command = (u32)mRenderCommands.size();
+				rcc->mesh = (u32)mRenderCommands.size();
+				rcc->material = (u32)mMaterials.size();
 
 				mRenderCommands.push_back(rc);
+				mMaterials.push_back(material);
 			}
 		}
 
@@ -329,52 +344,53 @@ public:
 		});
 
 		mEditorScene.manager().view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
-			if(rrc->render_command >= mRenderCommands.size())
+			if(rrc->mesh >= mRenderCommands.size())
 				return;
 
-			auto& rc = mRenderCommands[rrc->render_command];
+			auto& rc = mRenderCommands[rrc->mesh];
+			auto& mat = mMaterials[rrc->material];
 
 			Math::fMat4 model = Math::translation(tc->position) * Math::scale({0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f});
 			mProgram.set_uniform_m4("sys_model", model);
 
-			if (rc.material.baseColorTexture == -1) {
+			if (mat.baseColorTexture == -1) {
 				// No texture
 				mProgram.set_uniform_i1("mat_has_base_color_texture", 0);
-				mProgram.set_uniform_f3("mat_base_color", rc.material.baseColor);
+				mProgram.set_uniform_f3("mat_base_color", mat.baseColor);
 			}
 			else {
 				// Has texture
 				u32 index = 0;
 				glActiveTexture(GL_TEXTURE0 + index);
-				glBindTexture(GL_TEXTURE_2D, rc.material.baseColorTexture);
+				glBindTexture(GL_TEXTURE_2D, mat.baseColorTexture);
 				mProgram.set_uniform_i1("mat_base_color_texture", index);
 
 				mProgram.set_uniform_i1("mat_has_base_color_texture", 1);
 			}
 
-			if (rc.material.baseColorTexture == -1) {
+			if (mat.baseColorTexture == -1) {
 				// No texture
 				mProgram.set_uniform_i1("mat_has_metallic_roughness", 0);
-				mProgram.set_uniform_f1("mat_metallic", rc.material.metallic);
-				mProgram.set_uniform_f1("mat_roughness", rc.material.roughness);
+				mProgram.set_uniform_f1("mat_metallic", mat.metallic);
+				mProgram.set_uniform_f1("mat_roughness", mat.roughness);
 			}
 			else {
 				// Has texture
 				u32 index = 1;
 				glActiveTexture(GL_TEXTURE0 + index);
-				glBindTexture(GL_TEXTURE_2D, rc.material.metallicRoughnessTexture);
+				glBindTexture(GL_TEXTURE_2D, mat.metallicRoughnessTexture);
 				mProgram.set_uniform_i1("mat_metallic_roughness_texture", index);
 
 				mProgram.set_uniform_i1("mat_has_metallic_roughness", 1);
 			}
 
-			if (rc.material.normalTexture == -1) {
+			if (mat.normalTexture == -1) {
 				mProgram.set_uniform_i1("mat_has_normal", 0);
 			}
 			else {
 				u32 index = 2;
 				glActiveTexture(GL_TEXTURE0 + index);
-				glBindTexture(GL_TEXTURE_2D, rc.material.normalTexture);
+				glBindTexture(GL_TEXTURE_2D, mat.normalTexture);
 				mProgram.set_uniform_i1("mat_normal_map", index);
 
 				mProgram.set_uniform_i1("mat_has_normal", 1);
@@ -409,6 +425,8 @@ public:
 				});
 				UI::container("cont2", [&]() {
 					if (UI::button("Add light.")) {
+						Utility::Log("Create light.");
+
 						auto& mgr = mEditorScene.manager();
 						u32 ent = mgr.create();
 						TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
@@ -445,6 +463,7 @@ private:
 	float mLastUpdate;
 	u32 vao{};
 	std::vector<RenderCommand> mRenderCommands;
+	std::vector<PBRMaterial> mMaterials;
 	Gfx::Shader mProgram;
 };
 
