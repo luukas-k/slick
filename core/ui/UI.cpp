@@ -56,11 +56,17 @@ namespace Slick::UI{
 	};
 
 	struct UIButton {
+		bool hovered;
+		bool clicked;
 	};
 
 	struct UISlider {
 		float min, max;
 		float value;
+	};
+
+	struct UIWindow {
+		i32 offset_x, offset_y;
 	};
 
 	struct UIElement {
@@ -70,8 +76,9 @@ namespace Slick::UI{
 		std::string label;
 		std::vector<UIElement> children;
 		Gfx::Viewport vp;
-		bool hovered, clicked, released, handled;
 		
+		UIWindow as_window;
+		UIButton as_button;
 		UIContainer as_container;
 		UISlider as_slider;
 	};
@@ -83,6 +90,11 @@ namespace Slick::UI{
 		i32 screen_w, screen_h;
 		Gfx::Renderer2D renderer;
 		std::unordered_map<std::string, u32> textures;
+		bool clicked, last_clicked;
+		
+		i32 drag_x, drag_y;
+		i32 drag_cursor_x, drag_cursor_y;
+		bool dragging;
 	};
 
 	UIContext* s_Context = nullptr;
@@ -270,9 +282,6 @@ namespace Slick::UI{
 		switch (e.type) {
 			case ElementType::Root: 
 			{
-				if (ctx->data.vp.w == ctx->screen_w && ctx->data.vp.h && ctx->screen_h) {
-					return;
-				}
 				e.vp = ctx->data.vp;
 				ctx->screen_w = e.vp.w;
 				ctx->screen_h = e.vp.h;
@@ -286,7 +295,8 @@ namespace Slick::UI{
 			case ElementType::Window:
 			{
 				auto[cx, cy, ew, eh] = calculate_size(e);
-				e.vp = Gfx::Viewport{vp.x, vp.y + vp.h - eh, ew, eh};
+				e.vp = Gfx::Viewport{vp.x, vp.y + vp.h - eh, ew, eh}.offset(-e.as_window.offset_x, e.as_window.offset_y);
+				// Utility::Log(e.as_window.offset_x, e.as_window.offset_y);
 
 				Gfx::Viewport header = e.vp.top(25);
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0).shrink(5, 5, 5, 5);
@@ -360,19 +370,21 @@ namespace Slick::UI{
 	}
 
 	void render(UIContext* ctx, UIElement& e) {
-		auto draw_vp = [&](Gfx::Viewport vp, Math::fVec3 color) {
+		auto draw_vp = [&](Gfx::Viewport vp, Math::fVec3 color, i32 border_radius) {
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
-				color
+				color,
+				(float)border_radius / vp.w
 			);
 		};
-		auto draw_tex = [&](Gfx::Viewport vp, const std::string& name) {
+		auto draw_tex = [&](Gfx::Viewport vp, const std::string& name, i32 border_radius) {
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
 				{0.f, 0.f}, {1.f, 1.f},
-				get_texture("icon/" + name)
+				get_texture("icon/" + name),
+				(float)border_radius / vp.w
 			);
 		};
 
@@ -390,9 +402,9 @@ namespace Slick::UI{
 				Gfx::Viewport close = header.right(25).shrink(1, 1, 1, 1);
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 				
-				draw_vp(content, e.as_container.color);
-				draw_vp(header, {.2f, .2f, .2f});
-				draw_tex(close, "cross.png");
+				draw_vp(content, e.as_container.color, 5);
+				draw_vp(header, {.2f, .2f, .2f}, 5);
+				draw_tex(close, "cross.png", 5);
 
 				for (auto& c : e.children) {
 					render(ctx, c);
@@ -405,9 +417,9 @@ namespace Slick::UI{
 				Gfx::Viewport minimize = header.right(25);
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-				draw_vp(header, {0.3f, 0.2f, 0.2f});
-				draw_vp(content, e.as_container.color);
-				draw_tex(minimize, "minimize.png");
+				draw_vp(header, {0.3f, 0.2f, 0.2f}, 5);
+				draw_vp(content, e.as_container.color, 5);
+				draw_tex(minimize, "minimize.png", 5);
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
@@ -416,10 +428,10 @@ namespace Slick::UI{
 			case ElementType::Button: 
 			{
 				Gfx::Viewport button_container = e.vp;
-				Math::fVec3 color = e.hovered ? Math::fVec3{1.f, 0.f, 0.f} : Math::fVec3{0.5f, 0.5f, 0.5f};
-				draw_vp(button_container, color);
-				draw_vp(button_container.shrink(2, 2, 2, 2), {0.f, 0.f, 0.f});
-				draw_vp(button_container.shrink(4, 4, 4, 4), color);
+				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{1.f, 0.f, 0.f} : Math::fVec3{0.5f, 0.5f, 0.5f};
+				draw_vp(button_container, color, 5);
+				draw_vp(button_container.shrink(2, 2, 2, 2), {0.f, 0.f, 0.f}, 5);
+				draw_vp(button_container.shrink(4, 4, 4, 4), color, 5);
 				return;
 			}
 			case ElementType::Slider: 
@@ -429,8 +441,8 @@ namespace Slick::UI{
 
 				Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
 
-				draw_vp(slider_container, {0.2f, 0.2f, 0.2f});
-				draw_vp(slider_grabber, {0.4f, 0.2f, 0.2f});
+				draw_vp(slider_container, {0.2f, 0.2f, 0.2f}, 5);
+				draw_vp(slider_grabber, {0.4f, 0.2f, 0.2f}, 5);
 				return;
 			}
 		}
@@ -438,10 +450,52 @@ namespace Slick::UI{
 		Utility::Assert(false, "Unknown type.");
 	}
 
+	bool is_hovered(Gfx::Viewport vp) {
+		return vp.contains(s_Context->data.cx, s_Context->data.vp.h - s_Context->data.cy);
+	}
+
 	void update(UIContext* ctx, UIElement& e) {
 		switch (e.type) {
+			case ElementType::Window: 
+			{
+				auto& wnd = e.as_window;
+				if (!ctx->dragging) {
+					if (is_hovered(e.vp.top(25)) && ctx->clicked) {
+						ctx->drag_cursor_x = ctx->data.cx;
+						ctx->drag_cursor_y = ctx->data.cy;
+						ctx->drag_x = wnd.offset_x;
+						ctx->drag_y = wnd.offset_y;
+						ctx->dragging = true;
+					}
+				}
+				else {
+					i32 new_ox = ctx->drag_x + (ctx->drag_cursor_x - ctx->data.cx);
+					i32 new_oy = ctx->drag_y + (ctx->drag_cursor_y - ctx->data.cy);
+
+					if(wnd.offset_x != new_ox)
+						Utility::Log("dx");
+
+					wnd.offset_x = new_ox;
+					wnd.offset_y = new_oy;
+
+					if (!ctx->clicked) {
+						ctx->dragging = false;
+					}
+				}
+				break;
+			}
 			case ElementType::Button:
 			{
+				auto& btn = e.as_button;
+				
+				btn.hovered = is_hovered(e.vp);
+
+				if (!btn.clicked) {
+					btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
+					if(ctx->last_clicked && !ctx->clicked)
+						Utility::Log(is_hovered(e.vp), ctx->last_clicked, !ctx->clicked);
+				}
+
 				break;
 			}
 		}
@@ -457,6 +511,9 @@ namespace Slick::UI{
 		s_Context->renderer.on_resize(s_Context->data.vp);
 		// display_hierarchy(s_Context->root, 0);
 		relayout(s_Context, s_Context->root, {});
+
+		s_Context->last_clicked = s_Context->clicked;
+		s_Context->clicked = s_Context->data.clicked;
 		update(s_Context, s_Context->root);
 
 		s_Context->renderer.begin();
@@ -464,31 +521,12 @@ namespace Slick::UI{
 		s_Context->renderer.end();
 	}
 
-	bool is_hovered(Gfx::Viewport vp) {
-		return vp.contains(s_Context->data.cx, s_Context->data.vp.h - s_Context->data.cy);
-	}
-
-	bool has_clicked() {
-		return s_Context->data.clicked;
-	}
-
 	bool button(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Button, label);
-		elem->hovered = is_hovered(elem->vp);
-		
-		if (elem->hovered && !elem->clicked) {
-			elem->clicked = has_clicked();
-			elem->handled = false;
-		}
-
-		if (elem->clicked && !elem->handled) {
-			elem->handled = true;
+		if (elem->as_button.clicked) {
+			elem->as_button.clicked = false;
 			return true;
 		}
-
-		if(!has_clicked())
-			elem->clicked = false;
-
 		return false;
 	}
 
@@ -501,7 +539,6 @@ namespace Slick::UI{
 
 	bool begin_tree(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::TreeNode, label);
-		elem->hovered = is_hovered(elem->vp);
 
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
@@ -522,8 +559,7 @@ namespace Slick::UI{
 
 	bool begin_container(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Container, label);
-		elem->hovered = is_hovered(elem->vp);
-
+		
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
 			elem->is_new = false;
@@ -543,12 +579,14 @@ namespace Slick::UI{
 
 	bool begin_window(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Window, label);
-		elem->hovered = is_hovered(elem->vp);
 
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
-			elem->is_new = false;
 			elem->as_container.color = {(float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX};
+			elem->as_window.offset_x = 0;
+			elem->as_window.offset_y = 0;
+
+			elem->is_new = false;
 		}
 
 		if (elem->as_container.is_open) {

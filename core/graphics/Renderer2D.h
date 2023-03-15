@@ -14,6 +14,8 @@ namespace Slick::Gfx {
 		Math::fVec2 uv;
 		Math::fVec3 color;
 		float texture_index;
+		float quad_ar;
+		float border_radius;
 	};
 
 	class Renderer2D {
@@ -24,8 +26,8 @@ namespace Slick::Gfx {
 		void begin();
 		void end();
 		
-		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color);
-		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 texture);
+		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius);
+		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 texture, float border_radius);
 
 		inline void on_resize(Viewport vp) { mScreen = vp; }
 	private:

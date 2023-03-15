@@ -53,6 +53,8 @@ namespace Slick::Gfx {
 			glUniform1i(glGetUniformLocation(mShader.id(), name.c_str()), i);
 		}
 
+		mShader.set_uniform_f2("sys_viewport", {(float)mScreen.w, (float)mScreen.h});
+
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, pos));
 
@@ -65,6 +67,12 @@ namespace Slick::Gfx {
 		glEnableVertexAttribArray(3);
 		glVertexAttribPointer(3, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, texture_index));
 		
+		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(4, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, quad_ar));
+		
+		glEnableVertexAttribArray(5);
+		glVertexAttribPointer(5, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, border_radius));
+		
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 
@@ -73,7 +81,7 @@ namespace Slick::Gfx {
 		glDeleteVertexArrays(1, &vao);
 	}
 
-	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 tex) {
+	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 tex, float b_radius) {
 		if (mActiveTextureCount == 16) {
 			end();
 			begin();
@@ -100,19 +108,23 @@ namespace Slick::Gfx {
 			mCurrentTextures[mActiveTextureCount++] = tex;
 		}
 
+		float quad_ar = (p1.x * mScreen.w - p0.x * mScreen.w) / (p1.y * mScreen.h - p0.y * mScreen.h);
+
 		p0 = p0 * 2.f - Math::fVec2{1.f, 1.f};
 		p1 = p1 * 2.f - Math::fVec2{1.f, 1.f};
 
-		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i });
-		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i });
-		push_vertex({ {p0.x, p1.y}, {uv0.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i });
+		// Utility::Log("ar: ", quad_ar);
 
-		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i });
-		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i });
-		push_vertex({ {p1.x, p0.y}, {uv1.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i });
+		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p0.x, p1.y}, {uv0.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+
+		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p1.x, p0.y}, {uv1.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
 	}
 
-	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color) {
+	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius) {
 		auto push_vertex = [&](Vertex2D v) {
 			if (mVertexCount < mVertices.size()) {
 				mVertices[mVertexCount++] = v;
@@ -123,16 +135,18 @@ namespace Slick::Gfx {
 			}
 		};
 
+		float quad_ar = (p1.x * mScreen.w - p0.x * mScreen.w) / (p1.y * mScreen.h - p0.y * mScreen.h);
+
 		p0 = p0 * 2.f - Math::fVec2{1.f, 1.f};
 		p1 = p1 * 2.f - Math::fVec2{1.f, 1.f};
 
-		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f });
-		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f });
-		push_vertex({ {p0.x, p1.y}, {0.f, 1.f}, color, -1.f });
+		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ {p0.x, p1.y}, {0.f, 1.f}, color, -1.f, quad_ar, border_radius });
 
-		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f });
-		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f });
-		push_vertex({ {p1.x, p0.y}, {1.f, 0.f}, color, -1.f });
+		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ {p1.x, p0.y}, {1.f, 0.f}, color, -1.f, quad_ar, border_radius });
 	}
 
 }
