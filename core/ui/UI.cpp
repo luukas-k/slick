@@ -11,7 +11,7 @@
 #include "stb_truetype.h"
 
 namespace Slick::UI {
-	
+
 	enum struct ElementType {
 		Root,
 		Window,
@@ -20,7 +20,7 @@ namespace Slick::UI {
 		Slider,
 		TreeNode
 	};
-	
+
 	enum struct ContainerLayout {
 		Vertical,
 		Horizontal
@@ -33,9 +33,9 @@ namespace Slick {
 	template<>
 	std::string format<UI::ElementType>(UI::ElementType t) {
 		switch (t) {
-			case UI::ElementType::Button:		return "Button";
-			case UI::ElementType::Container:	return "Container";
-			case UI::ElementType::Root:			return "Root";
+		case UI::ElementType::Button:		return "Button";
+		case UI::ElementType::Container:	return "Container";
+		case UI::ElementType::Root:			return "Root";
 		}
 		return "Unknown";
 	}
@@ -47,7 +47,7 @@ namespace Slick {
 
 }
 
-namespace Slick::UI{
+namespace Slick::UI {
 
 	struct UIContainer {
 		bool is_open;
@@ -67,6 +67,7 @@ namespace Slick::UI{
 
 	struct UIWindow {
 		i32 offset_x, offset_y;
+		bool minimized;
 	};
 
 	struct UIElement {
@@ -76,7 +77,7 @@ namespace Slick::UI{
 		std::string label;
 		std::vector<UIElement> children;
 		Gfx::Viewport vp;
-		
+
 		UIWindow as_window;
 		UIButton as_button;
 		UIContainer as_container;
@@ -91,7 +92,7 @@ namespace Slick::UI{
 		Gfx::Renderer2D renderer;
 		std::unordered_map<std::string, u32> textures;
 		bool clicked, last_clicked;
-		
+
 		i32 drag_x, drag_y;
 		i32 drag_cursor_x, drag_cursor_y;
 		bool dragging;
@@ -107,8 +108,8 @@ namespace Slick::UI{
 		i32 w{}, h{}, c{};
 		stbi_set_flip_vertically_on_load(true);
 		u8* data = stbi_load(name.c_str(), &w, &h, &c, 4);
-			
-		u32 id{0};
+
+		u32 id{ 0 };
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
 
@@ -126,10 +127,10 @@ namespace Slick::UI{
 
 	UIData* create_context() {
 		s_Context = new UIContext{
-			.root = UIElement{ 
-				.type = ElementType::Root, 
+			.root = UIElement{
+				.type = ElementType::Root,
 				.is_new = true,
-				.parent = nullptr, 
+				.parent = nullptr,
 				.label = "root",
 				.children = {},
 				.vp = {0,0,0,0},
@@ -146,7 +147,7 @@ namespace Slick::UI{
 	UIData* get_ui_data() {
 		return &s_Context->data;
 	}
-	
+
 	UIElement* get_or_create(ElementType type, const std::string& label) {
 		for (auto& e : s_Context->current->children) {
 			if (e.type == type && e.label == label) {
@@ -159,7 +160,7 @@ namespace Slick::UI{
 			.parent = nullptr,
 			.label = label,
 			.children = {}
-		});
+											   });
 		return &s_Context->current->children[s_Context->current->children.size() - 1];
 	}
 
@@ -179,191 +180,194 @@ namespace Slick::UI{
 		Utility::Log(Utility::Repeat("\t", i), e.type, e.vp);
 
 		switch (e.type) {
-			case ElementType::Root: 
-			{
-				for (auto& r : e.children) {
-					display_hierarchy(r, i + 1);
-				}
-				break;
+		case ElementType::Root:
+		{
+			for (auto& r : e.children) {
+				display_hierarchy(r, i + 1);
 			}
-			case ElementType::Container: 
-			{
-				for (auto& r : e.children) {
-					display_hierarchy(r, i + 1);
-				}
-				break;
+			break;
+		}
+		case ElementType::Container:
+		{
+			for (auto& r : e.children) {
+				display_hierarchy(r, i + 1);
 			}
-			case ElementType::Button: 
-			{
-				break;
-			}
+			break;
+		}
+		case ElementType::Button:
+		{
+			break;
+		}
 		}
 	}
 
 	Gfx::Viewport calculate_size(UIElement& e) {
 		switch (e.type) {
-			case ElementType::Root: 
-			{
+		case ElementType::Root:
+		{
+			for (auto& c : e.children) {
+				return calculate_size(c);
+			}
+			return { 0, 0, 0, 0 };
+		}
+		case ElementType::Window:
+		{
+			if (e.as_container.layout == ContainerLayout::Horizontal) {
+				i32 w = 0, h = 0;
 				for (auto& c : e.children) {
-					return calculate_size(c);
+					auto [cx, cy, cw, ch] = calculate_size(c);
+					w += cw;
+					if (ch > h)
+						h = ch;
 				}
-				return {0, 0, 0, 0};
-			}
-			case ElementType::Window:
-			{
-				if (e.as_container.layout == ContainerLayout::Horizontal) {
-					i32 w = 0, h = 0;
-					for (auto& c : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(c);
-						w += cw;
-						if(ch > h)
-							h = ch;
-					}
-					return {0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10};
-				}
-				else if (e.as_container.layout == ContainerLayout::Vertical) {
-					i32 w = 0, h = 0;
-					for (auto& c : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(c);
-						h += ch;
-						if(cw > w)
-							w = cw;
-					}
-					Gfx::Viewport content{0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10};
-					return content.grow(0, 0, 25, 0);
-				}
-				else {
-					Utility::Assert(false, "Unknown layout.");
-				}
-			}
-			case ElementType::Container:
-			{
-				Gfx::Viewport content{};
-				if (e.as_container.layout == ContainerLayout::Horizontal) {
-					i32 w = 0, h = 0;
-					for (auto& c : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(c);
-						w += cw;
-						if(ch > h)
-							h = ch;
-					}
-					content = {0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10};
-				}
-				else if (e.as_container.layout == ContainerLayout::Vertical) {
-					i32 w = 0, h = 0;
-					for (auto& c : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(c);
-						h += ch;
-						if(cw > w)
-							w = cw;
-					}
-					content = {0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10};
-				}
-				else {
-					Utility::Assert(false, "Unknown layout.");
-				}
-
+				Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
 				return content.grow(0, 0, 25, 0);
 			}
-			case ElementType::Button: 
-			{
-				return {0, 0, (i32)e.label.size() * 25, 20};
+			else if (e.as_container.layout == ContainerLayout::Vertical) {
+				i32 w = 0, h = 0;
+				for (auto& c : e.children) {
+					auto [cx, cy, cw, ch] = calculate_size(c);
+					h += ch;
+					if (cw > w)
+						w = cw;
+				}
+				Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+				return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, w, 25};
 			}
-			case ElementType::Slider:
-			{
-				return {0, 0, 100, 20};
+			else {
+				Utility::Assert(false, "Unknown layout.");
 			}
 		}
+		case ElementType::Container:
+		{
+			Gfx::Viewport content{};
+			if (e.as_container.layout == ContainerLayout::Horizontal) {
+				i32 w = 0, h = 0;
+				for (auto& c : e.children) {
+					auto [cx, cy, cw, ch] = calculate_size(c);
+					w += cw;
+					if (ch > h)
+						h = ch;
+				}
+				content = { 0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10 };
+			}
+			else if (e.as_container.layout == ContainerLayout::Vertical) {
+				i32 w = 0, h = 0;
+				for (auto& c : e.children) {
+					auto [cx, cy, cw, ch] = calculate_size(c);
+					h += ch;
+					if (cw > w)
+						w = cw;
+				}
+				content = { 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+			}
+			else {
+				Utility::Assert(false, "Unknown layout.");
+			}
+
+			return content.grow(0, 0, 25, 0);
+		}
+		case ElementType::Button:
+		{
+			return { 0, 0, (i32)e.label.size() * 25, 20 };
+		}
+		case ElementType::Slider:
+		{
+			return { 0, 0, 100, 20 };
+		}
+		}
 		Utility::Assert(false, "Unknown type.");
-		return {0, 0, 0, 0};
+		return { 0, 0, 0, 0 };
 	}
 
 	void relayout(UIContext* ctx, UIElement& e, Gfx::Viewport vp) {
 		switch (e.type) {
-			case ElementType::Root: 
-			{
-				e.vp = ctx->data.vp;
-				ctx->screen_w = e.vp.w;
-				ctx->screen_h = e.vp.h;
+		case ElementType::Root:
+		{
+			e.vp = ctx->data.vp;
+			ctx->screen_w = e.vp.w;
+			ctx->screen_h = e.vp.h;
 
-				Utility::Assert(e.children.size() == 1, "Root can only have a single child element.");
+			Utility::Assert(e.children.size() == 1, "Root can only have a single child element.");
+			for (auto& r : e.children) {
+				relayout(ctx, r, e.vp);
+			}
+			return;
+		}
+		case ElementType::Window:
+		{
+			auto [cx, cy, ew, eh] = calculate_size(e);
+			e.vp = Gfx::Viewport{ vp.x, vp.y + vp.h - eh, ew, eh }.offset(-e.as_window.offset_x, e.as_window.offset_y);
+			// Utility::Log(e.as_window.offset_x, e.as_window.offset_y);
+
+			Gfx::Viewport header = e.vp.top(25);
+			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0).shrink(5, 5, 5, 5);
+
+			if(!e.as_window.minimized){
+				if (e.as_container.layout == ContainerLayout::Vertical) {
+					auto current = content;
+					for (auto& r : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(r);
+						relayout(ctx, r, current.top(ch));
+						current = current.shrink(0, 0, ch + 5, 0);
+					}
+				}
+				else if (e.as_container.layout == ContainerLayout::Horizontal) {
+					auto current = content;
+					for (auto& r : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(r);
+						relayout(ctx, r, current.left(cw));
+						current = current.shrink(cw + 5, 0, 0, 0);
+					}
+				}
+				else {
+					Utility::Assert(false, "Unknown layout.");
+				}
+			}
+			return;
+		}
+		case ElementType::TreeNode:
+		case ElementType::Container:
+		{
+			auto [cx, cy, ew, eh] = calculate_size(e);
+
+			e.vp = Gfx::Viewport{ vp.x, vp.y + vp.h - eh, ew, eh };
+			Gfx::Viewport header = e.vp.top(25);
+			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+
+			if (e.as_container.layout == ContainerLayout::Vertical) {
+				auto current = content.shrink(5, 5, 5, 5);
 				for (auto& r : e.children) {
-					relayout(ctx, r, e.vp);
+					auto [cx, cy, cw, ch] = calculate_size(r);
+					relayout(ctx, r, current.top(ch));
+					current = current.shrink(0, 0, ch + 5, 0);
 				}
-				return;
 			}
-			case ElementType::Window:
-			{
-				auto[cx, cy, ew, eh] = calculate_size(e);
-				e.vp = Gfx::Viewport{vp.x, vp.y + vp.h - eh, ew, eh}.offset(-e.as_window.offset_x, e.as_window.offset_y);
-				// Utility::Log(e.as_window.offset_x, e.as_window.offset_y);
-
-				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0).shrink(5, 5, 5, 5);
-
-				if (e.as_container.layout == ContainerLayout::Vertical) {
-					auto current = content;
-					for (auto& r : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(r);
-						relayout(ctx, r, current.top(ch));
-						current = current.shrink(0, 0, ch + 5, 0);
-					}
+			else if (e.as_container.layout == ContainerLayout::Horizontal) {
+				auto current = content.shrink(5, 5, 5, 5);
+				for (auto& r : e.children) {
+					auto [cx, cy, cw, ch] = calculate_size(r);
+					relayout(ctx, r, current.left(cw));
+					current = current.shrink(cw + 5, 0, 0, 0);
 				}
-				else if (e.as_container.layout == ContainerLayout::Horizontal) {
-					auto current = content;
-					for (auto& r : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(r);
-						relayout(ctx, r, current.left(cw));
-						current = current.shrink(cw + 5, 0, 0, 0);
-					}
-				}
-				else {
-					Utility::Assert(false, "Unknown layout.");
-				}
-				return;
 			}
-			case ElementType::TreeNode: 
-			case ElementType::Container: 
-			{
-				auto[cx, cy, ew, eh] = calculate_size(e);
-
-				e.vp = Gfx::Viewport{vp.x, vp.y + vp.h - eh, ew, eh};
-				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
-
-				if (e.as_container.layout == ContainerLayout::Vertical) {
-					auto current = content.shrink(5, 5, 5, 5);
-					for (auto& r : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(r);
-						relayout(ctx, r, current.top(ch));
-						current = current.shrink(0, 0, ch + 5, 0);
-					}
-				}
-				else if (e.as_container.layout == ContainerLayout::Horizontal) {
-					auto current = content.shrink(5, 5, 5, 5);
-					for (auto& r : e.children) {
-						auto[cx, cy, cw, ch] = calculate_size(r);
-						relayout(ctx, r, current.left(cw));
-						current = current.shrink(cw + 5, 0, 0, 0);
-					}
-				}
-				else {
-					Utility::Assert(false, "Unknown layout.");
-				}
-				return;
+			else {
+				Utility::Assert(false, "Unknown layout.");
 			}
-			case ElementType::Button: 
-			{
-				auto[x, y, w, h] = calculate_size(e);
-				e.vp = vp.left(w).top(h);
-				return;
-			}
-			case ElementType::Slider: 
-			{
-				auto[x, y, w, h] = calculate_size(e);
-				e.vp = vp.left(w).top(h);
-				return;
-			}
+			return;
+		}
+		case ElementType::Button:
+		{
+			auto [x, y, w, h] = calculate_size(e);
+			e.vp = vp.left(w).top(h);
+			return;
+		}
+		case ElementType::Slider:
+		{
+			auto [x, y, w, h] = calculate_size(e);
+			e.vp = vp.left(w).top(h);
+			return;
+		}
 		}
 
 		Utility::Assert(false, "Unknown type.");
@@ -382,69 +386,74 @@ namespace Slick::UI{
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
-				{0.f, 0.f}, {1.f, 1.f},
+				{ 0.f, 0.f }, { 1.f, 1.f },
 				get_texture("icon/" + name),
 				(float)border_radius / vp.w
 			);
 		};
 
 		switch (e.type) {
-			case ElementType::Root: 
-			{
-				for (auto& c : e.children) {
-					render(ctx, c);
-				}
-				return;
+		case ElementType::Root:
+		{
+			for (auto& c : e.children) {
+				render(ctx, c);
 			}
-			case ElementType::Window: 
-			{
-				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport close = header.right(25).shrink(1, 1, 1, 1);
-				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
-				
+			return;
+		}
+		case ElementType::Window:
+		{
+			Gfx::Viewport header = e.vp.top(25);
+			Gfx::Viewport close = header.right(25);
+			Gfx::Viewport minimize = close.offset(-25, 0);
+			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+
+			if(!e.as_window.minimized)
 				draw_vp(content, e.as_container.color, 5);
-				draw_vp(header, {.2f, .2f, .2f}, 5);
-				draw_tex(close, "cross.png", 5);
+			draw_vp(header, { .2f, .2f, .2f }, 5);
+			draw_vp(close.shrink(3, 3, 3, 3), { 1.f, 0.f, 0.f }, 10);
+			draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
 
+			if (!e.as_window.minimized) {
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
-				return;
 			}
-			case ElementType::Container: 
-			{
-				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport minimize = header.right(25);
-				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+			return;
+		}
+		case ElementType::Container:
+		{
+			Gfx::Viewport header = e.vp.top(25);
+			Gfx::Viewport minimize = header.right(25);
+			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-				draw_vp(header, {0.3f, 0.2f, 0.2f}, 5);
-				draw_vp(content, e.as_container.color, 5);
-				draw_tex(minimize, "minimize.png", 5);
-				for (auto& c : e.children) {
-					render(ctx, c);
-				}
-				return;
+			draw_vp(header, { 0.3f, 0.2f, 0.2f }, 10);
+			draw_vp(content, e.as_container.color, 10);
+			draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
+			for (auto& c : e.children) {
+				render(ctx, c);
 			}
-			case ElementType::Button: 
-			{
-				Gfx::Viewport button_container = e.vp;
-				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{1.f, 0.f, 0.f} : Math::fVec3{0.5f, 0.5f, 0.5f};
-				draw_vp(button_container, color, 5);
-				draw_vp(button_container.shrink(2, 2, 2, 2), {0.f, 0.f, 0.f}, 5);
-				draw_vp(button_container.shrink(4, 4, 4, 4), color, 5);
-				return;
-			}
-			case ElementType::Slider: 
-			{
-				Gfx::Viewport slider_container = e.vp;
-				float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
+			return;
+		}
+		case ElementType::Button:
+		{
+			Gfx::Viewport button_container = e.vp;
+			Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
+			draw_vp(button_container, color, 5);
+			draw_vp(button_container.shrink(2, 2, 2, 2), { 0.f, 0.f, 0.f }, 5);
+			draw_vp(button_container.shrink(4, 4, 4, 4), color, 5);
+			return;
+		}
+		case ElementType::Slider:
+		{
+			Gfx::Viewport slider_container = e.vp;
+			float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
 
-				Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
+			Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
 
-				draw_vp(slider_container, {0.2f, 0.2f, 0.2f}, 5);
-				draw_vp(slider_grabber, {0.4f, 0.2f, 0.2f}, 5);
-				return;
-			}
+			draw_vp(slider_container, { 0.2f, 0.2f, 0.2f }, 5);
+			draw_vp(slider_grabber, { 0.4f, 0.2f, 0.2f }, 5);
+			return;
+		}
 		}
 
 		Utility::Assert(false, "Unknown type.");
@@ -456,48 +465,48 @@ namespace Slick::UI{
 
 	void update(UIContext* ctx, UIElement& e) {
 		switch (e.type) {
-			case ElementType::Window: 
-			{
-				auto& wnd = e.as_window;
-				if (!ctx->dragging) {
-					if (is_hovered(e.vp.top(25)) && ctx->clicked) {
-						ctx->drag_cursor_x = ctx->data.cx;
-						ctx->drag_cursor_y = ctx->data.cy;
-						ctx->drag_x = wnd.offset_x;
-						ctx->drag_y = wnd.offset_y;
-						ctx->dragging = true;
-					}
+		case ElementType::Window:
+		{
+			auto& wnd = e.as_window;
+			if (!ctx->dragging) {
+				if (is_hovered(e.vp.top(25).shrink(0, 50, 0, 0)) && ctx->clicked) {
+					ctx->drag_cursor_x = ctx->data.cx;
+					ctx->drag_cursor_y = ctx->data.cy;
+					ctx->drag_x = wnd.offset_x;
+					ctx->drag_y = wnd.offset_y;
+					ctx->dragging = true;
 				}
-				else {
-					i32 new_ox = ctx->drag_x + (ctx->drag_cursor_x - ctx->data.cx);
-					i32 new_oy = ctx->drag_y + (ctx->drag_cursor_y - ctx->data.cy);
-
-					if(wnd.offset_x != new_ox)
-						Utility::Log("dx");
-
-					wnd.offset_x = new_ox;
-					wnd.offset_y = new_oy;
-
-					if (!ctx->clicked) {
-						ctx->dragging = false;
-					}
+				if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked) {
+					e.as_window.minimized = !e.as_window.minimized;
 				}
-				break;
 			}
-			case ElementType::Button:
-			{
-				auto& btn = e.as_button;
-				
-				btn.hovered = is_hovered(e.vp);
+			else {
+				i32 new_ox = ctx->drag_x + (ctx->drag_cursor_x - ctx->data.cx);
+				i32 new_oy = ctx->drag_y + (ctx->drag_cursor_y - ctx->data.cy);
 
-				if (!btn.clicked) {
-					btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
-					if(ctx->last_clicked && !ctx->clicked)
-						Utility::Log(is_hovered(e.vp), ctx->last_clicked, !ctx->clicked);
+				wnd.offset_x = new_ox;
+				wnd.offset_y = new_oy;
+
+				if (!ctx->clicked) {
+					ctx->dragging = false;
 				}
-
-				break;
 			}
+			break;
+		}
+		case ElementType::Button:
+		{
+			auto& btn = e.as_button;
+
+			btn.hovered = is_hovered(e.vp);
+
+			if (!btn.clicked) {
+				btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
+				if (ctx->last_clicked && !ctx->clicked)
+					Utility::Log(is_hovered(e.vp), ctx->last_clicked, !ctx->clicked);
+			}
+
+			break;
+		}
 		}
 
 		for (auto& c : e.children) {
@@ -543,7 +552,7 @@ namespace Slick::UI{
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
 			elem->is_new = false;
-			elem->as_container.color = {(float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX};
+			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 		}
 
 		if (elem->as_container.is_open) {
@@ -559,11 +568,11 @@ namespace Slick::UI{
 
 	bool begin_container(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Container, label);
-		
+
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
 			elem->is_new = false;
-			elem->as_container.color = {(float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX};
+			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 		}
 
 		if (elem->as_container.is_open) {
@@ -582,7 +591,7 @@ namespace Slick::UI{
 
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
-			elem->as_container.color = {(float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX};
+			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 			elem->as_window.offset_x = 0;
 			elem->as_window.offset_y = 0;
 
