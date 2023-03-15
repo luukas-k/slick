@@ -35,6 +35,10 @@ namespace Slick::Gfx {
 		glUniform1f(uniform_location(name), v);
 	}
 
+	void Shader::set_uniform_f2(const std::string& name, const Math::fVec2 v) {
+		glUniform2f(uniform_location(name), v.x, v.y);
+	}
+
 	void Shader::set_uniform_f3(const std::string& name, const Math::fVec3 v) {
 		glUniform3f(uniform_location(name), v.x, v.y, v.z);
 	}
