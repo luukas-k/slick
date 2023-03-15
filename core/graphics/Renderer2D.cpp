@@ -124,6 +124,13 @@ namespace Slick::Gfx {
 		push_vertex({ {p1.x, p0.y}, {uv1.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
 	}
 
+	void Renderer2D::submit_text(Math::fVec2 pos, float scale, const std::string& text) {
+		for (char c : text) {
+			submit_rect(pos, pos + Math::fVec2{0.4f * scale, scale}, {0.2f, 0.2f, 0.2f}, 0);
+			pos.x += 0.5f * scale;
+		}
+	}
+
 	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius) {
 		auto push_vertex = [&](Vertex2D v) {
 			if (mVertexCount < mVertices.size()) {
