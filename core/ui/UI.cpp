@@ -203,78 +203,78 @@ namespace Slick::UI {
 
 	Gfx::Viewport calculate_size(UIElement& e) {
 		switch (e.type) {
-		case ElementType::Root:
-		{
-			for (auto& c : e.children) {
-				return calculate_size(c);
-			}
-			return { 0, 0, 0, 0 };
-		}
-		case ElementType::Window:
-		{
-			if (e.as_container.layout == ContainerLayout::Horizontal) {
-				i32 w = 0, h = 0;
+			case ElementType::Root:
+			{
 				for (auto& c : e.children) {
-					auto [cx, cy, cw, ch] = calculate_size(c);
-					w += cw;
-					if (ch > h)
-						h = ch;
+					return calculate_size(c);
 				}
-				Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+				return { 0, 0, 0, 0 };
+			}
+			case ElementType::Window:
+			{
+				if (e.as_container.layout == ContainerLayout::Horizontal) {
+					i32 w = 0, h = 0;
+					for (auto& c : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(c);
+						w += cw;
+						if (ch > h)
+							h = ch;
+					}
+					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+					return content.grow(0, 0, 25, 0);
+				}
+				else if (e.as_container.layout == ContainerLayout::Vertical) {
+					i32 w = 0, h = 0;
+					for (auto& c : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(c);
+						h += ch;
+						if (cw > w)
+							w = cw;
+					}
+					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, w, 25};
+				}
+				else {
+					Utility::Assert(false, "Unknown layout.");
+				}
+			}
+			case ElementType::Container:
+			{
+				Gfx::Viewport content{};
+				if (e.as_container.layout == ContainerLayout::Horizontal) {
+					i32 w = 0, h = 0;
+					for (auto& c : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(c);
+						w += cw;
+						if (ch > h)
+							h = ch;
+					}
+					content = { 0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10 };
+				}
+				else if (e.as_container.layout == ContainerLayout::Vertical) {
+					i32 w = 0, h = 0;
+					for (auto& c : e.children) {
+						auto [cx, cy, cw, ch] = calculate_size(c);
+						h += ch;
+						if (cw > w)
+							w = cw;
+					}
+					content = { 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+				}
+				else {
+					Utility::Assert(false, "Unknown layout.");
+				}
+
 				return content.grow(0, 0, 25, 0);
 			}
-			else if (e.as_container.layout == ContainerLayout::Vertical) {
-				i32 w = 0, h = 0;
-				for (auto& c : e.children) {
-					auto [cx, cy, cw, ch] = calculate_size(c);
-					h += ch;
-					if (cw > w)
-						w = cw;
-				}
-				Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-				return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, w, 25};
+			case ElementType::Button:
+			{
+				return { 0, 0, (i32)(e.label.size() * 19), 25 };
 			}
-			else {
-				Utility::Assert(false, "Unknown layout.");
+			case ElementType::Slider:
+			{
+				return { 0, 0, 100, 20 };
 			}
-		}
-		case ElementType::Container:
-		{
-			Gfx::Viewport content{};
-			if (e.as_container.layout == ContainerLayout::Horizontal) {
-				i32 w = 0, h = 0;
-				for (auto& c : e.children) {
-					auto [cx, cy, cw, ch] = calculate_size(c);
-					w += cw;
-					if (ch > h)
-						h = ch;
-				}
-				content = { 0, 0, w + ((i32)e.children.size() - 1) * 5 + 10, h + 10 };
-			}
-			else if (e.as_container.layout == ContainerLayout::Vertical) {
-				i32 w = 0, h = 0;
-				for (auto& c : e.children) {
-					auto [cx, cy, cw, ch] = calculate_size(c);
-					h += ch;
-					if (cw > w)
-						w = cw;
-				}
-				content = { 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-			}
-			else {
-				Utility::Assert(false, "Unknown layout.");
-			}
-
-			return content.grow(0, 0, 25, 0);
-		}
-		case ElementType::Button:
-		{
-			return { 0, 0, (i32)e.label.size() * 25, 20 };
-		}
-		case ElementType::Slider:
-		{
-			return { 0, 0, 100, 20 };
-		}
 		}
 		Utility::Assert(false, "Unknown type.");
 		return { 0, 0, 0, 0 };
@@ -391,69 +391,75 @@ namespace Slick::UI {
 				(float)border_radius / vp.w
 			);
 		};
+		auto draw_text = [&](Gfx::Viewport vp, const std::string& text) {
+			ctx->renderer.submit_text(
+				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
+				(float)vp.h / ctx->data.vp.h,
+				text
+			);
+		};
 
 		switch (e.type) {
-		case ElementType::Root:
-		{
-			for (auto& c : e.children) {
-				render(ctx, c);
-			}
-			return;
-		}
-		case ElementType::Window:
-		{
-			Gfx::Viewport header = e.vp.top(25);
-			Gfx::Viewport close = header.right(25);
-			Gfx::Viewport minimize = close.offset(-25, 0);
-			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
-
-			if(!e.as_window.minimized)
-				draw_vp(content, e.as_container.color, 5);
-			draw_vp(header, { .2f, .2f, .2f }, 5);
-			draw_vp(close.shrink(3, 3, 3, 3), { 1.f, 0.f, 0.f }, 10);
-			draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
-
-			if (!e.as_window.minimized) {
+			case ElementType::Root:
+			{
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
+				return;
 			}
-			return;
-		}
-		case ElementType::Container:
-		{
-			Gfx::Viewport header = e.vp.top(25);
-			Gfx::Viewport minimize = header.right(25);
-			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+			case ElementType::Window:
+			{
+				Gfx::Viewport header = e.vp.top(25);
+				Gfx::Viewport close = header.right(25);
+				Gfx::Viewport minimize = close.offset(-25, 0);
+				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-			draw_vp(header, { 0.3f, 0.2f, 0.2f }, 10);
-			draw_vp(content, e.as_container.color, 10);
-			draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
-			for (auto& c : e.children) {
-				render(ctx, c);
+				if(!e.as_window.minimized)
+					draw_vp(content, e.as_container.color, 5);
+				draw_vp(header, { .2f, .2f, .2f }, 5);
+				draw_vp(close.shrink(3, 3, 3, 3), { 1.f, 0.f, 0.f }, 10);
+				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
+
+				if (!e.as_window.minimized) {
+					for (auto& c : e.children) {
+						render(ctx, c);
+					}
+				}
+				return;
 			}
-			return;
-		}
-		case ElementType::Button:
-		{
-			Gfx::Viewport button_container = e.vp;
-			Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
-			draw_vp(button_container, color, 5);
-			draw_vp(button_container.shrink(2, 2, 2, 2), { 0.f, 0.f, 0.f }, 5);
-			draw_vp(button_container.shrink(4, 4, 4, 4), color, 5);
-			return;
-		}
-		case ElementType::Slider:
-		{
-			Gfx::Viewport slider_container = e.vp;
-			float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
+			case ElementType::Container:
+			{
+				Gfx::Viewport header = e.vp.top(25);
+				Gfx::Viewport minimize = header.right(25);
+				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-			Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
+				draw_vp(header, { 0.3f, 0.2f, 0.2f }, 10);
+				draw_vp(content, e.as_container.color, 10);
+				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
+				for (auto& c : e.children) {
+					render(ctx, c);
+				}
+				return;
+			}
+			case ElementType::Button:
+			{
+				Gfx::Viewport button_container = e.vp;
+				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
+				draw_vp(button_container, color, 5);
+				draw_text(button_container.shrink(2,2,2,2), e.label);
+				return;
+			}
+			case ElementType::Slider:
+			{
+				Gfx::Viewport slider_container = e.vp;
+				float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
 
-			draw_vp(slider_container, { 0.2f, 0.2f, 0.2f }, 5);
-			draw_vp(slider_grabber, { 0.4f, 0.2f, 0.2f }, 5);
-			return;
-		}
+				Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
+
+				draw_vp(slider_container, { 0.2f, 0.2f, 0.2f }, 5);
+				draw_vp(slider_grabber, { 0.4f, 0.2f, 0.2f }, 5);
+				return;
+			}
 		}
 
 		Utility::Assert(false, "Unknown type.");
@@ -501,8 +507,6 @@ namespace Slick::UI {
 
 			if (!btn.clicked) {
 				btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
-				if (ctx->last_clicked && !ctx->clicked)
-					Utility::Log(is_hovered(e.vp), ctx->last_clicked, !ctx->clicked);
 			}
 
 			break;
