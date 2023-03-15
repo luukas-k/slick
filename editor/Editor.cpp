@@ -191,7 +191,6 @@ public:
 
 				auto& mat = gltf.materials[prim.material];
 				
-				// rc.material = 
 				PBRMaterial material{
 					.baseColor = mat.base_color,
 					.baseColorTexture = -1,
@@ -414,6 +413,8 @@ public:
 		});
 
 		UI::frame([&]() {
+			// UI::root_dockarea();
+
 			UI::window("Window0", [&]() {
 				UI::container("cont1", [&]() {
 					if (UI::button("Set light to cam pos.")) {
@@ -437,6 +438,16 @@ public:
 					if (UI::button("Hello2")) {
 						Utility::Log("HelloC");
 					}
+				});
+			});
+			UI::window("Window2", [&]() {
+				UI::container("cont1", [&]() {
+					if (UI::button("Set light to cam pos.")) {
+						glUseProgram(mProgram.id());
+						mProgram.set_uniform_f3("light_pos", cam.pos());
+					}
+					float v{(sinf(mLastUpdate) + 1.f) * 0.5f * 10.f};
+					UI::slider("Hello", 0.f, 10.f, v);
 				});
 			});
 		});

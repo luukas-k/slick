@@ -36,6 +36,7 @@ namespace Slick {
 		case UI::ElementType::Button:		return "Button";
 		case UI::ElementType::Container:	return "Container";
 		case UI::ElementType::Root:			return "Root";
+		case UI::ElementType::Window:		return "Window";
 		}
 		return "Unknown";
 	}
@@ -67,7 +68,9 @@ namespace Slick::UI {
 
 	struct UIWindow {
 		i32 offset_x, offset_y;
-		bool minimized;
+		bool dragging, minimized;
+		i32 drag_x, drag_y;
+		i32 drag_cx, drag_cy;
 	};
 
 	struct UIElement {
@@ -92,10 +95,7 @@ namespace Slick::UI {
 		Gfx::Renderer2D renderer;
 		std::unordered_map<std::string, u32> textures;
 		bool clicked, last_clicked;
-
-		i32 drag_x, drag_y;
-		i32 drag_cursor_x, drag_cursor_y;
-		bool dragging;
+		bool consumed;
 	};
 
 	UIContext* s_Context = nullptr;
@@ -178,26 +178,9 @@ namespace Slick::UI {
 
 	void display_hierarchy(UIElement& e, u32 i) {
 		Utility::Log(Utility::Repeat("\t", i), e.type, e.vp);
-
-		switch (e.type) {
-		case ElementType::Root:
-		{
-			for (auto& r : e.children) {
-				display_hierarchy(r, i + 1);
-			}
-			break;
-		}
-		case ElementType::Container:
-		{
-			for (auto& r : e.children) {
-				display_hierarchy(r, i + 1);
-			}
-			break;
-		}
-		case ElementType::Button:
-		{
-			break;
-		}
+		
+		for (auto& r : e.children) {
+			display_hierarchy(r, i + 1);
 		}
 	}
 
@@ -205,9 +188,9 @@ namespace Slick::UI {
 		switch (e.type) {
 			case ElementType::Root:
 			{
-				for (auto& c : e.children) {
+				/*for (auto& c : e.children) {
 					return calculate_size(c);
-				}
+				}*/
 				return { 0, 0, 0, 0 };
 			}
 			case ElementType::Window:
@@ -221,7 +204,7 @@ namespace Slick::UI {
 							h = ch;
 					}
 					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-					return content.grow(0, 0, 25, 0);
+					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
 				}
 				else if (e.as_container.layout == ContainerLayout::Vertical) {
 					i32 w = 0, h = 0;
@@ -232,7 +215,7 @@ namespace Slick::UI {
 							w = cw;
 					}
 					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, w, 25};
+					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
 				}
 				else {
 					Utility::Assert(false, "Unknown layout.");
@@ -288,7 +271,7 @@ namespace Slick::UI {
 			ctx->screen_w = e.vp.w;
 			ctx->screen_h = e.vp.h;
 
-			Utility::Assert(e.children.size() == 1, "Root can only have a single child element.");
+			// Utility::Assert(e.children.size() == 1, "Root can only have a single child element.");
 			for (auto& r : e.children) {
 				relayout(ctx, r, e.vp);
 			}
@@ -474,27 +457,29 @@ namespace Slick::UI {
 		case ElementType::Window:
 		{
 			auto& wnd = e.as_window;
-			if (!ctx->dragging) {
-				if (is_hovered(e.vp.top(25).shrink(0, 50, 0, 0)) && ctx->clicked) {
-					ctx->drag_cursor_x = ctx->data.cx;
-					ctx->drag_cursor_y = ctx->data.cy;
-					ctx->drag_x = wnd.offset_x;
-					ctx->drag_y = wnd.offset_y;
-					ctx->dragging = true;
+			if (!wnd.dragging) {
+				if (is_hovered(e.vp.top(25).shrink(0, 50, 0, 0)) && !ctx->last_clicked && ctx->clicked && !ctx->consumed) {
+					ctx->consumed = true;
+					wnd.drag_cx = ctx->data.cx;
+					wnd.drag_cy = ctx->data.cy;
+					wnd.drag_x = wnd.offset_x;
+					wnd.drag_y = wnd.offset_y;
+					wnd.dragging = true;
 				}
-				if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked) {
+				if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked && !ctx->consumed) {
+					ctx->consumed = true;
 					e.as_window.minimized = !e.as_window.minimized;
 				}
 			}
 			else {
-				i32 new_ox = ctx->drag_x + (ctx->drag_cursor_x - ctx->data.cx);
-				i32 new_oy = ctx->drag_y + (ctx->drag_cursor_y - ctx->data.cy);
+				i32 new_ox = wnd.drag_x + (wnd.drag_cx - ctx->data.cx);
+				i32 new_oy = wnd.drag_y + (wnd.drag_cy - ctx->data.cy);
 
 				wnd.offset_x = new_ox;
 				wnd.offset_y = new_oy;
 
 				if (!ctx->clicked) {
-					ctx->dragging = false;
+					wnd.dragging = false;
 				}
 			}
 			break;
@@ -522,11 +507,12 @@ namespace Slick::UI {
 		Utility::Assert(s_Context->current == &s_Context->root);
 
 		s_Context->renderer.on_resize(s_Context->data.vp);
-		// display_hierarchy(s_Context->root, 0);
+		display_hierarchy(s_Context->root, 0);
 		relayout(s_Context, s_Context->root, {});
 
 		s_Context->last_clicked = s_Context->clicked;
 		s_Context->clicked = s_Context->data.clicked;
+		s_Context->consumed = false;
 		update(s_Context, s_Context->root);
 
 		s_Context->renderer.begin();
@@ -597,7 +583,7 @@ namespace Slick::UI {
 			elem->as_container.is_open = true;
 			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 			elem->as_window.offset_x = 0;
-			elem->as_window.offset_y = 0;
+			elem->as_window.offset_y = (rand() / RAND_MAX) * 50;
 
 			elem->is_new = false;
 		}
