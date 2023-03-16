@@ -6,6 +6,7 @@ in vec3 fColor;
 in float fTextureIndex;
 in float fQuadAspectRatio;
 in float fBorderRadius;
+in float fIsText;
 
 uniform sampler2D sys_textures[16];
 uniform vec2 sys_viewport = vec2(1,1);
@@ -13,11 +14,17 @@ uniform vec2 sys_viewport = vec2(1,1);
 out vec4 rColor;
 
 vec4 get_color(){
-	if(fTextureIndex >= -0.5){
-		return texture(sys_textures[int(fTextureIndex)], fUV);
-	}
-	else{
-		return vec4(fColor, 1.0);
+	if(fIsText < 0.5f){
+		if(fTextureIndex >= -0.5){
+			return texture(sys_textures[int(fTextureIndex)], fUV);
+		}
+		else{
+			return vec4(fColor, 1.0);
+		}
+	} 
+	else {
+		float alpha = texture(sys_textures[int(fTextureIndex)], fUV).r;
+		return vec4(vec3(0.0), alpha);
 	}
 }
 

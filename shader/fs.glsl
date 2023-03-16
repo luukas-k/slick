@@ -128,9 +128,6 @@ void main(){
 	
     vec3 color = ambient + Lo;
 
-    if(get_alpha() < 0.5)
-        discard;
-
     color = color / (color + vec3(1.0));
     // color = pow(color, vec3(1.0 / 2.2));
 

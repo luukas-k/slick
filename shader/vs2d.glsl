@@ -6,6 +6,7 @@ in vec3 vColor;
 in float vTextureIndex;
 in float vQuadAspectRatio;
 in float vBorderRadius;
+in float vIsText;
 
 out vec2 fPos;
 out vec2 fUV;
@@ -13,6 +14,7 @@ out vec3 fColor;
 out float fTextureIndex;
 out float fQuadAspectRatio;
 out float fBorderRadius;
+out float fIsText;
 
 void main(){
 	gl_Position = vec4(vPos, 0.0, 1.0);
@@ -22,5 +24,6 @@ void main(){
 	fTextureIndex = vTextureIndex;
 	fQuadAspectRatio = vQuadAspectRatio;
 	fBorderRadius = vBorderRadius;
+	fIsText = vIsText;
 }
 

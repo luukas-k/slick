@@ -4,6 +4,9 @@
 
 #include "graphics/Shader.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
 namespace Slick::Gfx {
 
 	Renderer2D::Renderer2D() 
@@ -18,6 +21,38 @@ namespace Slick::Gfx {
 		mCurrentTextures({})
 	{
 		glGenBuffers(1, &mVertexBuffer);
+
+		auto read_file = [](const std::string& fname) -> std::vector<u8> {
+			std::fstream fs(fname, std::fstream::binary | std::fstream::in);
+			if(!fs) return {};
+			return std::vector<u8>(std::istreambuf_iterator<char>(fs), std::istreambuf_iterator<char>());
+		};
+
+		auto font_data = read_file("font/Roboto-Regular.ttf");
+		// std::vector<stbtt_packedchar> chardata;
+		mFontData.resize(95);
+		
+		u8* font_bitmap = new u8[512 * 512];
+		
+		stbtt_pack_context pctx{};
+
+		stbtt_PackBegin(&pctx, font_bitmap, 512, 512, 0, 1, nullptr);
+		stbtt_PackFontRange(&pctx, font_data.data(), 0, 32.f, 32, 95, mFontData.data());
+		stbtt_PackEnd(&pctx);
+
+
+		u32 ftex{};
+		glGenTextures(1, &ftex);
+		glBindTexture(GL_TEXTURE_2D, ftex);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 512, 512, 0, GL_RED, GL_UNSIGNED_BYTE, font_bitmap);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+		delete[] font_bitmap;
+
+		mFontTexture = ftex;
 	}
 
 	Renderer2D::~Renderer2D() {}
@@ -34,7 +69,10 @@ namespace Slick::Gfx {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
+		glDisable(GL_DEPTH_TEST);
+
 		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
 
 		// Draw
 		glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
@@ -73,15 +111,15 @@ namespace Slick::Gfx {
 		glEnableVertexAttribArray(5);
 		glVertexAttribPointer(5, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, border_radius));
 		
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_BLEND);
-
+		glEnableVertexAttribArray(6);
+		glVertexAttribPointer(6, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, is_text));
+		
 		glDrawArrays(GL_TRIANGLES, 0, mVertexCount);
 		
 		glDeleteVertexArrays(1, &vao);
 	}
 
-	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 tex, float b_radius) {
+	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 tex, float b_radius, bool is_text) {
 		if (mActiveTextureCount == 16) {
 			end();
 			begin();
@@ -115,20 +153,51 @@ namespace Slick::Gfx {
 
 		// Utility::Log("ar: ", quad_ar);
 
-		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
-		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
-		push_vertex({ {p0.x, p1.y}, {uv0.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
+		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
+		push_vertex({ {p0.x, p1.y}, {uv0.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
 
-		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
-		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
-		push_vertex({ {p1.x, p0.y}, {uv1.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius });
+		push_vertex({ {p1.x, p1.y}, {uv1.x, uv1.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
+		push_vertex({ {p0.x, p0.y}, {uv0.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
+		push_vertex({ {p1.x, p0.y}, {uv1.x, uv0.y}, {0.f, 0.f, 0.f}, tex_i, quad_ar, b_radius, is_text ? 1.f : 0.f });
 	}
 
-	void Renderer2D::submit_text(Math::fVec2 pos, float scale, const std::string& text) {
+	void Renderer2D::submit_text(Math::fVec2 pos, float scale1, const std::string& text) {
 		for (char c : text) {
-			submit_rect(pos, pos + Math::fVec2{0.4f * scale, scale}, {0.2f, 0.2f, 0.2f}, 0);
-			pos.x += 0.5f * scale;
+			const stbtt_packedchar& pc = mFontData[c - 32];
+			float scale = scale1 / 32.f;
+			float ar = (float)mScreen.h / mScreen.w;
+			Math::fVec2 p0{
+				pc.xoff * scale * ar,
+				-pc.yoff2 * scale
+			};
+			Math::fVec2 p1{
+				pc.xoff2 * scale * ar,
+				-pc.yoff * scale
+			};
+			submit_rect(pos + p0, pos + p1, {(float)pc.x0 / 512, (float)pc.y1 / 512}, {(float)pc.x1 / 512, (float)pc.y0 / 512}, mFontTexture, 0.f, true);
+			pos.x += pc.xadvance * scale * ar;
 		}
+	}
+
+	Math::fVec2 Renderer2D::text_metrics(float scale1, const std::string& text) {
+		Math::fVec2 pos{0.f, scale1};
+		for (char c : text) {
+			const stbtt_packedchar& pc = mFontData[c - 32];
+			float scale = scale1 / 32.f;
+			float ar = (float)mScreen.h / mScreen.w;
+			Math::fVec2 p0{
+				pc.xoff * scale * ar,
+				-pc.yoff2 * scale
+			};
+			Math::fVec2 p1{
+				pc.xoff2 * scale * ar,
+				-pc.yoff * scale
+			};
+			// submit_rect(pos + p0, pos + p1, {(float)pc.x0 / 512, (float)pc.y1 / 512}, {(float)pc.x1 / 512, (float)pc.y0 / 512}, mFontTexture, 0.f, true);
+			pos.x += pc.xadvance * scale * ar;
+		}
+		return pos;
 	}
 
 	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius) {

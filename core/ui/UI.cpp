@@ -33,10 +33,10 @@ namespace Slick {
 	template<>
 	std::string format<UI::ElementType>(UI::ElementType t) {
 		switch (t) {
-		case UI::ElementType::Button:		return "Button";
-		case UI::ElementType::Container:	return "Container";
-		case UI::ElementType::Root:			return "Root";
-		case UI::ElementType::Window:		return "Window";
+			case UI::ElementType::Button:		return "Button";
+			case UI::ElementType::Container:	return "Container";
+			case UI::ElementType::Root:			return "Root";
+			case UI::ElementType::Window:		return "Window";
 		}
 		return "Unknown";
 	}
@@ -78,6 +78,7 @@ namespace Slick::UI {
 		bool is_new;
 		UIElement* parent;
 		std::string label;
+		intptr_t current_index;
 		std::vector<UIElement> children;
 		Gfx::Viewport vp;
 
@@ -149,8 +150,11 @@ namespace Slick::UI {
 	}
 
 	UIElement* get_or_create(ElementType type, const std::string& label) {
-		for (auto& e : s_Context->current->children) {
+		for (u32 i = s_Context->current->current_index; i < s_Context->current->children.size(); i++) {
+			auto& e = s_Context->current->children[i];
 			if (e.type == type && e.label == label) {
+				s_Context->current->current_index = i;
+				e.current_index = 0;
 				return &e;
 			}
 		}
@@ -159,8 +163,9 @@ namespace Slick::UI {
 			.is_new = true,
 			.parent = nullptr,
 			.label = label,
-			.children = {}
-											   });
+			.current_index = 0,
+			.children = {},
+		});
 		return &s_Context->current->children[s_Context->current->children.size() - 1];
 	}
 
@@ -174,10 +179,12 @@ namespace Slick::UI {
 
 	void begin_frame() {
 		s_Context->current = &s_Context->root;
+		// Utility::Log(s_Context->current->current_index);
+		s_Context->current->current_index = 0;
 	}
 
 	void display_hierarchy(UIElement& e, u32 i) {
-		Utility::Log(Utility::Repeat("\t", i), e.type, e.vp);
+		Utility::Log(Utility::Repeat("\t", i), e.type, "'" + e.label + "'", e.vp);
 		
 		for (auto& r : e.children) {
 			display_hierarchy(r, i + 1);
@@ -188,9 +195,6 @@ namespace Slick::UI {
 		switch (e.type) {
 			case ElementType::Root:
 			{
-				/*for (auto& c : e.children) {
-					return calculate_size(c);
-				}*/
 				return { 0, 0, 0, 0 };
 			}
 			case ElementType::Window:
@@ -429,7 +433,7 @@ namespace Slick::UI {
 				Gfx::Viewport button_container = e.vp;
 				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
 				draw_vp(button_container, color, 5);
-				draw_text(button_container.shrink(2,2,2,2), e.label);
+				draw_text(button_container.offset(4,4), e.label);
 				return;
 			}
 			case ElementType::Slider:
@@ -507,7 +511,7 @@ namespace Slick::UI {
 		Utility::Assert(s_Context->current == &s_Context->root);
 
 		s_Context->renderer.on_resize(s_Context->data.vp);
-		display_hierarchy(s_Context->root, 0);
+		// display_hierarchy(s_Context->root, 0);
 		relayout(s_Context, s_Context->root, {});
 
 		s_Context->last_clicked = s_Context->clicked;
@@ -583,8 +587,8 @@ namespace Slick::UI {
 			elem->as_container.is_open = true;
 			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 			elem->as_window.offset_x = 0;
-			elem->as_window.offset_y = (rand() / RAND_MAX) * 50;
-
+			elem->as_window.offset_y = 0;
+			
 			elem->is_new = false;
 		}
 

@@ -36,8 +36,13 @@ namespace Slick::Gfx {
 		mOnCursorMove([](i32,i32){})
 	{
 		glfwInit();
-
+		
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+		// glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+		/*glfwWindowHint(GLFW_RED_BITS, 8);
+		glfwWindowHint(GLFW_GREEN_BITS, 8);
+		glfwWindowHint(GLFW_BLUE_BITS, 8);
+		glfwWindowHint(GLFW_ALPHA_BITS, 8);*/
 		
 		mHandle = glfwCreateWindow(1280, 720, "title", nullptr, nullptr);
 		glfwMakeContextCurrent(mHandle);
@@ -53,7 +58,7 @@ namespace Slick::Gfx {
 			// Shader Recompiled
 			if(id == 131218) 
 				return;
-			Utility::Log(false, "[", id, "]: ", message);
+			Utility::Assert(false, "[", id, "]: ", message);
 		}, nullptr);
 		
 		glfwSetWindowUserPointer(mHandle, this);
