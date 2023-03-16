@@ -23,6 +23,7 @@ namespace Slick::ECS {
 
 	void Manager::destroy(u32 eid) {
 		mEntities.erase(eid);
+		Utility::Log("Erased ", eid, " Left ", mEntities.size());
 	}
 
 }

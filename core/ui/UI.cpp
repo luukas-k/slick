@@ -53,7 +53,7 @@ namespace Slick::UI {
 	struct UIContainer {
 		bool is_open;
 		ContainerLayout layout;
-		Math::fVec3 color;
+		// Math::fVec3 color;
 	};
 
 	struct UIButton {
@@ -153,12 +153,17 @@ namespace Slick::UI {
 		for (u32 i = s_Context->current->current_index; i < s_Context->current->children.size(); i++) {
 			auto& e = s_Context->current->children[i];
 			if (e.type == type && e.label == label) {
-				s_Context->current->current_index = i;
+				u32 skipped = i - s_Context->current->current_index;
+				if (skipped > 0) {
+					Utility::Log("[UI]: Skipped n = ", skipped, " and deleted them.");
+					s_Context->current->children.erase(s_Context->current->children.begin() + s_Context->current->current_index, s_Context->current->children.begin() + s_Context->current->current_index + skipped);
+				}
+				s_Context->current->current_index++;
 				e.current_index = 0;
 				return &e;
 			}
 		}
-		s_Context->current->children.push_back(UIElement{
+		s_Context->current->children.insert(s_Context->current->children.begin() + s_Context->current->current_index, UIElement{
 			.type = type,
 			.is_new = true,
 			.parent = nullptr,
@@ -166,7 +171,7 @@ namespace Slick::UI {
 			.current_index = 0,
 			.children = {},
 		});
-		return &s_Context->current->children[s_Context->current->children.size() - 1];
+		return &s_Context->current->children[s_Context->current->current_index++];
 	}
 
 	void set_current(UIElement* elem) {
@@ -174,6 +179,11 @@ namespace Slick::UI {
 		s_Context->current = elem;
 	}
 	void set_current_as_parent() {
+		u32 left = s_Context->current->children.size() - s_Context->current->current_index;
+		if (left > 0) {
+			Utility::Log("Deleted left overs n = ", left, ".");
+			s_Context->current->children.erase(s_Context->current->children.begin() + s_Context->current->current_index, s_Context->current->children.begin() + s_Context->current->current_index + left);
+		}
 		s_Context->current = s_Context->current->parent;
 	}
 
@@ -185,7 +195,6 @@ namespace Slick::UI {
 
 	void display_hierarchy(UIElement& e, u32 i) {
 		Utility::Log(Utility::Repeat("\t", i), e.type, "'" + e.label + "'", e.vp);
-		
 		for (auto& r : e.children) {
 			display_hierarchy(r, i + 1);
 		}
@@ -207,6 +216,8 @@ namespace Slick::UI {
 						if (ch > h)
 							h = ch;
 					}
+					if(w < 250)
+						w = 250;
 					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
 					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
 				}
@@ -218,6 +229,8 @@ namespace Slick::UI {
 						if (cw > w)
 							w = cw;
 					}
+					if(w < 250)
+						w = 250;
 					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
 					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
 				}
@@ -256,7 +269,8 @@ namespace Slick::UI {
 			}
 			case ElementType::Button:
 			{
-				return { 0, 0, (i32)(e.label.size() * 19), 25 };
+				auto[tw, th] = s_Context->renderer.text_metrics(25.f / s_Context->data.vp.h, e.label);
+				return { 0, 0, (i32)(tw * s_Context->data.vp.w) + 10, (i32)(th * s_Context->data.vp.h) };
 			}
 			case ElementType::Slider:
 			{
@@ -402,11 +416,11 @@ namespace Slick::UI {
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
 				if(!e.as_window.minimized)
-					draw_vp(content, e.as_container.color, 5);
+					draw_vp(content, { 0.1f, 0.1f, 0.1f }, 5);
 				draw_vp(header, { .2f, .2f, .2f }, 5);
 				draw_vp(close.shrink(3, 3, 3, 3), { 1.f, 0.f, 0.f }, 10);
 				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
-
+				draw_text(header.offset(5, 4), e.label);
 				if (!e.as_window.minimized) {
 					for (auto& c : e.children) {
 						render(ctx, c);
@@ -420,9 +434,10 @@ namespace Slick::UI {
 				Gfx::Viewport minimize = header.right(25);
 				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-				draw_vp(header, { 0.3f, 0.2f, 0.2f }, 10);
-				draw_vp(content, e.as_container.color, 10);
+				draw_vp(header, { 0.3f, 0.3f, 0.3f }, 10);
+				draw_vp(content, { 0.2f, 0.2f, 0.2f }, 10);
 				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
+				draw_text(header.offset(5, 4), e.label);
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
@@ -433,7 +448,7 @@ namespace Slick::UI {
 				Gfx::Viewport button_container = e.vp;
 				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
 				draw_vp(button_container, color, 5);
-				draw_text(button_container.offset(4,4), e.label);
+				draw_text(button_container.offset(5,4), e.label);
 				return;
 			}
 			case ElementType::Slider:
@@ -546,7 +561,6 @@ namespace Slick::UI {
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
 			elem->is_new = false;
-			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 		}
 
 		if (elem->as_container.is_open) {
@@ -566,7 +580,7 @@ namespace Slick::UI {
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
 			elem->is_new = false;
-			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
+			// elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 		}
 
 		if (elem->as_container.is_open) {
@@ -580,14 +594,25 @@ namespace Slick::UI {
 		set_current_as_parent();
 	}
 
+	std::pair<i32, i32> new_window_position() {
+		if (s_Context->root.children.size() > 1) {
+			auto& last = s_Context->root.children[s_Context->root.children.size() - 1];
+			return {last.as_window.offset_x - 25, -last.as_window.offset_y - 25};
+		}
+		return {0, 0};
+	}
+
 	bool begin_window(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Window, label);
 
 		if (elem->is_new) {
+			elem->as_window.minimized = false;
 			elem->as_container.is_open = true;
-			elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
-			elem->as_window.offset_x = 0;
-			elem->as_window.offset_y = 0;
+			// elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
+
+			auto[px, py] = new_window_position();
+			elem->as_window.offset_x = px;
+			elem->as_window.offset_y = py;
 			
 			elem->is_new = false;
 		}

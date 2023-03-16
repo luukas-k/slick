@@ -194,7 +194,6 @@ namespace Slick::Gfx {
 				pc.xoff2 * scale * ar,
 				-pc.yoff * scale
 			};
-			// submit_rect(pos + p0, pos + p1, {(float)pc.x0 / 512, (float)pc.y1 / 512}, {(float)pc.x1 / 512, (float)pc.y0 / 512}, mFontTexture, 0.f, true);
 			pos.x += pc.xadvance * scale * ar;
 		}
 		return pos;
@@ -211,18 +210,18 @@ namespace Slick::Gfx {
 			}
 		};
 
-		float quad_ar = (p1.x * mScreen.w - p0.x * mScreen.w) / (p1.y * mScreen.h - p0.y * mScreen.h);
+		float quad_ar = ((p1.x - p0.x) / (p1.y - p0.y)) * ((float)mScreen.w / mScreen.h);
 
 		p0 = p0 * 2.f - Math::fVec2{1.f, 1.f};
 		p1 = p1 * 2.f - Math::fVec2{1.f, 1.f};
 
-		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f, quad_ar, border_radius });
-		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f, quad_ar, border_radius });
-		push_vertex({ {p0.x, p1.y}, {0.f, 1.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p0.x, p1.y}, .uv = {0.f, 1.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius, .is_text = 0.f });
 
-		push_vertex({ {p1.x, p1.y}, {1.f, 1.f}, color, -1.f, quad_ar, border_radius });
-		push_vertex({ {p0.x, p0.y}, {0.f, 0.f}, color, -1.f, quad_ar, border_radius });
-		push_vertex({ {p1.x, p0.y}, {1.f, 0.f}, color, -1.f, quad_ar, border_radius });
+		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius });
+		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius });
+		push_vertex({ .pos = {p1.x, p0.y}, .uv = {1.f, 0.f}, .color = color, .texture_index = -1.f, .quad_ar = quad_ar, .border_radius = border_radius });
 	}
 
 }

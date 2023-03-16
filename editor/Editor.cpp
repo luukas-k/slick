@@ -415,16 +415,8 @@ public:
 		UI::frame([&]() {
 			// UI::root_dockarea();
 
-			UI::window("Window0", [&]() {
-				UI::container("cont1", [&]() {
-					if (UI::button("Set light to cam pos.")) {
-						glUseProgram(mProgram.id());
-						mProgram.set_uniform_f3("light_pos", cam.pos());
-					}
-					float v{(sinf(mLastUpdate) + 1.f) * 0.5f * 10.f};
-					UI::slider("Hello", 0.f, 10.f, v);
-				});
-				UI::container("cont2", [&]() {
+			UI::window("Primary window", [&]() {
+				UI::container("Tools", [&]() {
 					if (UI::button("Add light.")) {
 						Utility::Log("Create light.");
 
@@ -435,19 +427,15 @@ public:
 						LightComponent* lc = mgr.add_component<LightComponent>(ent);
 						lc->color = {1.f, 1.f, 1.f};
 					}
-					if (UI::button("Hello2")) {
-						Utility::Log("HelloC");
-					}
 				});
 			});
-			UI::window("Window2", [&]() {
-				UI::container("cont1", [&]() {
-					if (UI::button("Set light to cam pos.")) {
-						glUseProgram(mProgram.id());
-						mProgram.set_uniform_f3("light_pos", cam.pos());
-					}
-					float v{(sinf(mLastUpdate) + 1.f) * 0.5f * 10.f};
-					UI::slider("Hello", 0.f, 10.f, v);
+			UI::window("Secondary window", [&]() {
+				UI::container("Entities", [&]() {
+					mEditorScene.manager().view([&](u32 ent) {
+						if (UI::button("Entity (" + std::to_string(ent) + ")")) {
+							mEditorScene.manager().destroy(ent);
+						}
+					});
 				});
 			});
 		});
