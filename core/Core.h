@@ -27,4 +27,12 @@ namespace Slick {
 	using u32 = uint32_t;
 	using u64 = uint64_t;
 
+	u32 gen_id();
+
+	template<typename T>
+	u32 type_id() {
+		static u32 id = gen_id();
+		return id;
+	}
+
 }

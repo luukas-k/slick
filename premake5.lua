@@ -22,6 +22,7 @@ workspace "Slick"
 
         filter { "configurations:Debug" }
             defines { "DEBUG" }
+            optimize "Debug"
             symbols "On"
 
         filter { "configurations:Release" }

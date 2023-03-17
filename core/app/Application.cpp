@@ -31,10 +31,10 @@ namespace Slick::App{
 		while (!mSurface.should_close()) {
 			mSurface.update();
 			for (auto& ld : mLayers) {
-				ld.on_update(ld.data);
+				ld.on_update(ld.data, this);
 			}
 			for (auto& ld : mLayers) {
-				ld.on_render(ld.data, mSurface.width(), mSurface.height());
+				ld.on_render(ld.data, this, mSurface.width(), mSurface.height());
 			}
 			mSurface.present();
 

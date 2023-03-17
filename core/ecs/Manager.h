@@ -7,15 +7,7 @@
 namespace Slick::ECS {
 
 	constexpr const u32 MAX_COMPONENT_SIZE = 16;
-
-	u32 gen_id();
-
-	template<typename T>
-	u32 type_id() {
-		static u32 id = gen_id();
-		return id;
-	}
-
+	
 	class Manager {
 	public:
 		Manager();

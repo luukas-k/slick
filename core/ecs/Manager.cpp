@@ -1,12 +1,11 @@
 #include "Manager.h"
 
-namespace Slick::ECS {
-	
-	u32 gen_id() {
-		static u32 id = 1;
-		return id++;
-	}
+Slick::u32 Slick::gen_id() {
+	static u32 id = 1;
+	return id++;
+}
 
+namespace Slick::ECS {
 	
 	Manager::Manager() 
 		:
