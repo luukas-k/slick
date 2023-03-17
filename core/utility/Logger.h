@@ -44,7 +44,7 @@ namespace Slick::Utility {
 		if (!cond) {
 			Log("-----Assertion failed-----\n", args...);
 			assert(cond);
-			throw;	
+			// throw;	
 		}
 	}
 

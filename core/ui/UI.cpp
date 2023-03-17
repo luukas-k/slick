@@ -380,7 +380,7 @@ namespace Slick::UI {
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
 				color,
-				(float)border_radius / vp.w
+				(float)border_radius // vp.w
 			);
 		};
 		auto draw_tex = [&](Gfx::Viewport vp, const std::string& name, i32 border_radius) {
@@ -389,7 +389,7 @@ namespace Slick::UI {
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
 				{ 0.f, 0.f }, { 1.f, 1.f },
 				get_texture("icon/" + name),
-				(float)border_radius / vp.w
+				(float)border_radius // vp.w
 			);
 		};
 		auto draw_text = [&](Gfx::Viewport vp, const std::string& text) {

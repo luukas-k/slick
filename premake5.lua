@@ -7,6 +7,10 @@ workspace "Slick"
         cppdialect "C++20"
         architecture "x86_64"
         
+        links {
+            "Ws2_32"
+        }
+
         includedirs {
             "core/"
         }

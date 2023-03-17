@@ -16,7 +16,7 @@ namespace Slick::Gfx {
 		Math::fVec2 uv;
 		Math::fVec3 color;
 		float texture_index;
-		float quad_ar;
+		Math::fVec2 quad_size;
 		float border_radius;
 		float is_text;
 	};

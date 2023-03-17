@@ -4,7 +4,7 @@ in vec2 fPos;
 in vec2 fUV;
 in vec3 fColor;
 in float fTextureIndex;
-in float fQuadAspectRatio;
+in vec2 fQuadSize;
 in float fBorderRadius;
 in float fIsText;
 
@@ -30,16 +30,21 @@ vec4 get_color(){
 
 void main(){
 	// const float b_radius = 0.05;
-	float b_radius = fBorderRadius;
+	float b_radius = fBorderRadius; //fBorderRadius;
 
-	if(fUV.x < b_radius / fQuadAspectRatio && fUV.y < b_radius && distance(vec2(b_radius), fUV * vec2(fQuadAspectRatio, 1.0)) > b_radius)
-		discard;
-	if(fUV.x > (1.0 - b_radius / fQuadAspectRatio) && fUV.y < b_radius && distance(vec2(b_radius, b_radius), (vec2(1.0 - fUV.x, fUV.y)) * vec2(fQuadAspectRatio, 1.0)) > b_radius)
-		discard;
-	if(fUV.x < b_radius / fQuadAspectRatio && fUV.y > (1.0 - b_radius) && distance(vec2(b_radius), vec2(fUV.x, 1.0 - fUV.y) * vec2(fQuadAspectRatio, 1.0)) > b_radius)
-		discard;
-	if(fUV.x > (1.0 - b_radius / fQuadAspectRatio) && fUV.y > (1.0 - b_radius) && distance(vec2(b_radius, b_radius), (vec2(1.0 - fUV.x, 1.0 - fUV.y)) * vec2(fQuadAspectRatio, 1.0)) > b_radius)
-		discard;
+
+	vec2 coords = fUV * fQuadSize;
+
+	if(fIsText < 0.5){
+		if (
+			coords.x < b_radius && coords.y < b_radius && distance(coords, vec2(b_radius, b_radius)) > b_radius ||
+			fQuadSize.x - coords.x < b_radius && coords.y < b_radius && distance(coords, vec2(fQuadSize.x - b_radius, b_radius)) > b_radius ||
+			coords.x < b_radius && fQuadSize.y - coords.y < b_radius && distance(coords, vec2(b_radius, fQuadSize.y - b_radius)) > b_radius ||
+			fQuadSize.x - coords.x < b_radius && fQuadSize.y - coords.y < b_radius && distance(coords, vec2(fQuadSize.x - b_radius, fQuadSize.y - b_radius)) > b_radius 
+		) {
+			discard;
+		}
+	}
 	
 	rColor = get_color();
 }

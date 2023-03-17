@@ -30,11 +30,11 @@ enum struct Format : u8 {
 
 u32 format_type(Format f) {
 	switch (f) {
-		case Format::Float4: return GL_FLOAT;
-		case Format::Float3: return GL_FLOAT;
-		case Format::Float2: return GL_FLOAT;
-		case Format::Float1: return GL_FLOAT;
-		case Format::UInt16: return GL_UNSIGNED_SHORT;
+	case Format::Float4: return GL_FLOAT;
+	case Format::Float3: return GL_FLOAT;
+	case Format::Float2: return GL_FLOAT;
+	case Format::Float1: return GL_FLOAT;
+	case Format::UInt16: return GL_UNSIGNED_SHORT;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -42,11 +42,11 @@ u32 format_type(Format f) {
 
 u32 format_count(Format f) {
 	switch (f) {
-		case Format::Float4: return 4;
-		case Format::Float3: return 3;
-		case Format::Float2: return 2;
-		case Format::Float1: return 1;
-		case Format::UInt16: return 1;
+	case Format::Float4: return 4;
+	case Format::Float3: return 3;
+	case Format::Float2: return 2;
+	case Format::Float1: return 1;
+	case Format::UInt16: return 1;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -84,8 +84,8 @@ struct PBRMaterial {
 };
 
 float clamp(float min, float max, float v) {
-	if(v < min) return min;
-	if(v > max) return max;
+	if (v < min) return min;
+	if (v > max) return max;
 	return v;
 }
 
@@ -111,7 +111,7 @@ struct RenderCommand {
 
 	i32 normalBuffer, normalOffset;
 	Format normalFormat;
-	
+
 	i32 tangentBuffer, tangentOffset;
 	Format tangentFormat;
 
@@ -126,11 +126,11 @@ struct RenderCommand {
 
 class RenderSystem {
 public:
-	RenderSystem(){}
-	~RenderSystem(){}
+	RenderSystem() {}
+	~RenderSystem() {}
 
 	void update(App::Scene& scene) {
-		
+
 	}
 private:
 };
@@ -139,14 +139,13 @@ class EditorLayer {
 public:
 	EditorLayer()
 		:
-		mProgram("shader/vs.glsl", "shader/fs.glsl")
-	{
+		mProgram("shader/vs.glsl", "shader/fs.glsl") {
 		auto& mgr = mEditorScene.manager();
-		
+
 		UI::create_context();
 
 		auto& cam = mEditorScene.camera();
-		cam.set_position({0.f, 0.f, 3.f});
+		cam.set_position({ 0.f, 0.f, 3.f });
 
 		// auto gun_gltf = Editor::load_gltf("model/gun/gun.gltf");
 
@@ -172,14 +171,14 @@ public:
 
 			i32 w{}, h{}, c{};
 			u8* img_data = stbi_load_from_memory(b.data.data() + bv.offset, bv.length, &w, &h, &c, 4);
-			
+
 			u32 texId{};
 			glGenTextures(1, &texId);
 			glBindTexture(GL_TEXTURE_2D, texId);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (const void*)img_data);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			
+
 			stbi_image_free(img_data);
 
 			texture_ids.push_back(texId);
@@ -190,7 +189,7 @@ public:
 				RenderCommand rc{};
 
 				auto& mat = gltf.materials[prim.material];
-				
+
 				PBRMaterial material{
 					.baseColor = mat.base_color,
 					.baseColorTexture = -1,
@@ -218,22 +217,22 @@ public:
 
 				auto& posAcc = gltf.accessors[prim.attribute_position];
 				auto& posBufView = gltf.buffer_views[posAcc.buffer_view];
-				
+
 				rc.posBuffer = buffer_ids[posBufView.buffer];
 				rc.posOffset = posBufView.offset;
 				rc.posFormat = format_from_ctype_and_type(posAcc.component_type, posAcc.type);
 
 				auto& normAcc = gltf.accessors[prim.attribute_normal];
 				auto& normBufView = gltf.buffer_views[normAcc.buffer_view];
-				
+
 				rc.normalBuffer = buffer_ids[normBufView.buffer];
 				rc.normalOffset = normBufView.offset;
 				rc.normalFormat = format_from_ctype_and_type(normAcc.component_type, normAcc.type);
 
-				if(prim.attribute_tangent != -1){
+				if (prim.attribute_tangent != -1) {
 					auto& tangAcc = gltf.accessors[prim.attribute_tangent];
 					auto& tangBufView = gltf.buffer_views[tangAcc.buffer_view];
-				
+
 					rc.tangentBuffer = buffer_ids[tangBufView.buffer];
 					rc.tangentOffset = tangBufView.offset;
 					rc.tangentFormat = format_from_ctype_and_type(tangAcc.component_type, tangAcc.type);
@@ -246,7 +245,7 @@ public:
 
 				auto& uvAcc = gltf.accessors[prim.attribute_texcoord];
 				auto& uvBufView = gltf.buffer_views[uvAcc.buffer_view];
-				
+
 				rc.uvBuffer = buffer_ids[uvBufView.buffer];
 				rc.uvOffset = uvBufView.offset;
 				rc.uvFormat = format_from_ctype_and_type(uvAcc.component_type, uvAcc.type);
@@ -261,7 +260,7 @@ public:
 
 				u32 ent = mgr.create();
 				TransformComponent* tf = mgr.add_component<TransformComponent>(ent);
-				tf->position = {0.f, 0.f, 0.f};
+				tf->position = { 0.f, 0.f, 0.f };
 				RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
 				rcc->mesh = (u32)mRenderCommands.size();
 				rcc->material = (u32)mMaterials.size();
@@ -274,7 +273,7 @@ public:
 		mLastUpdate = (float)mTimer.elapsed();
 
 	}
-	~EditorLayer(){}
+	~EditorLayer() {}
 
 	void update() {
 		float currentTime = (float)mTimer.elapsed();
@@ -286,7 +285,7 @@ public:
 		// Utility::Log(mFrames / mTimer.elapsed(), mTimer.elapsed() / mFrames);
 		mFrames++;
 	}
-	u32 mFrames{0};
+	u32 mFrames{ 0 };
 	void fixed_update(float dt) {
 		mInput.update();
 		mEditorScene.update(dt);
@@ -294,7 +293,7 @@ public:
 		Math::fVec3 movement{
 			mInput.key_state(Input::Key::Key_A) * -1.f + mInput.key_state(Input::Key::Key_D) * 1.f,
 			mInput.key_state(Input::Key::Key_Shift) * -1.f + mInput.key_state(Input::Key::Key_Space) * 1.f,
-			mInput.key_state(Input::Key::Key_S) *  1.f + mInput.key_state(Input::Key::Key_W) * -1.f
+			mInput.key_state(Input::Key::Key_S) * 1.f + mInput.key_state(Input::Key::Key_W) * -1.f
 		};
 
 		float sensitivity = 0.01f;
@@ -302,12 +301,12 @@ public:
 		auto& cam = mEditorScene.camera();
 		cam.translate_local(movement * speed * dt);
 
-		if(mInput.button_state(Input::Button::Button_Left))	
-			cam.rotate(Math::fVec3{(float)mInput.cursor_dy() * sensitivity, (float)-mInput.cursor_dx() * sensitivity, 0.f});
+		if (mInput.button_state(Input::Button::Button_Left))
+			cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * sensitivity, (float)-mInput.cursor_dx() * sensitivity, 0.f });
 	}
 	void render(i32 w, i32 h) {
 		auto data = UI::get_ui_data();
-		data->vp = {0, 0, w, h};
+		data->vp = { 0, 0, w, h };
 
 		glViewport(0, 0, w, h);
 		glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -315,10 +314,10 @@ public:
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
-		
+
 		glEnable(GL_CULL_FACE);
 
 		auto& cam = mEditorScene.camera();
@@ -326,7 +325,7 @@ public:
 		Math::fMat4 view = cam.view();
 
 		mProgram.bind();
-		
+
 		mProgram.set_uniform_f3("cam_pos", cam.pos());
 
 		mProgram.set_uniform_m4("sys_proj", proj);
@@ -343,13 +342,13 @@ public:
 		});
 
 		mEditorScene.manager().view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
-			if(rrc->mesh >= mRenderCommands.size())
+			if (rrc->mesh >= mRenderCommands.size())
 				return;
 
 			auto& rc = mRenderCommands[rrc->mesh];
 			auto& mat = mMaterials[rrc->material];
 
-			Math::fMat4 model = Math::translation(tc->position) * Math::scale({0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f});
+			Math::fMat4 model = Math::translation(tc->position) * Math::scale({ 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f });
 			mProgram.set_uniform_m4("sys_model", model);
 
 			if (mat.baseColorTexture == -1) {
@@ -396,7 +395,7 @@ public:
 			}
 
 			auto enable_attribute = [](u32 index, i32 buffer, Format fmt, u32 offset) {
-				if(buffer == -1) return;
+				if (buffer == -1) return;
 
 				glBindBuffer(GL_ARRAY_BUFFER, buffer);
 				glEnableVertexAttribArray(index);
@@ -407,7 +406,7 @@ public:
 			enable_attribute(1, rc.normalBuffer, rc.normalFormat, rc.normalOffset);
 			enable_attribute(2, rc.tangentBuffer, rc.tangentFormat, rc.tangentOffset);
 			enable_attribute(3, rc.uvBuffer, rc.uvFormat, rc.uvOffset);
-			
+
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indexBuffer);
 			glDrawElements(GL_TRIANGLES, rc.indexCount, format_type(rc.indexFormat), (const void*)rc.indexOffset);
 		});
@@ -425,7 +424,7 @@ public:
 						TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
 						tc->position = mEditorScene.camera().pos();
 						LightComponent* lc = mgr.add_component<LightComponent>(ent);
-						lc->color = {1.f, 1.f, 1.f};
+						lc->color = { 1.f, 1.f, 1.f };
 					}
 				});
 			});
@@ -438,6 +437,25 @@ public:
 					});
 				});
 			});
+			UI::window("Network window", [&]() {
+				UI::container("Client", [&]() {
+					if (UI::button("Connect")) {
+						
+					}
+				});
+				UI::container("Server", [&]() {
+					if (!mServer.is_active()) {
+						if (UI::button("Start")) {
+							mServer.listen(5320);
+						}
+					}
+					else {
+						if (UI::button("Stop")) {
+							mServer.stop();
+						}
+					}
+				});
+			});
 		});
 	}
 	void on_key(Input::Key kc, bool state) {
@@ -446,7 +464,7 @@ public:
 	void on_button(Input::Button kc, bool state) {
 		mInput.on_button(kc, state);
 		auto data = UI::get_ui_data();
-		if(kc == Input::Button::Button_Left)
+		if (kc == Input::Button::Button_Left)
 			data->clicked = state;
 	}
 	void on_cursor_move(i32 x, i32 y) {
@@ -464,6 +482,8 @@ private:
 	std::vector<RenderCommand> mRenderCommands;
 	std::vector<PBRMaterial> mMaterials;
 	Gfx::Shader mProgram;
+	Net::Server mServer;
+	Net::Connection mConnection;
 };
 
 int main() {

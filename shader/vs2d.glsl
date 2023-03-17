@@ -4,7 +4,7 @@ in vec2 vPos;
 in vec2 vUV;
 in vec3 vColor;
 in float vTextureIndex;
-in float vQuadAspectRatio;
+in vec2 vQuadSize;
 in float vBorderRadius;
 in float vIsText;
 
@@ -12,7 +12,7 @@ out vec2 fPos;
 out vec2 fUV;
 out vec3 fColor;
 out float fTextureIndex;
-out float fQuadAspectRatio;
+out vec2 fQuadSize;
 out float fBorderRadius;
 out float fIsText;
 
@@ -22,7 +22,7 @@ void main(){
 	fUV = vUV;
 	fColor = vColor;
 	fTextureIndex = vTextureIndex;
-	fQuadAspectRatio = vQuadAspectRatio;
+	fQuadSize = vQuadSize;
 	fBorderRadius = vBorderRadius;
 	fIsText = vIsText;
 }
