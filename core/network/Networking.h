@@ -2,6 +2,8 @@
 
 #include "Core.h"
 
+#include <WinSock2.h>
+
 namespace Slick::Net {
 
 	class Connection {
@@ -9,8 +11,15 @@ namespace Slick::Net {
 		Connection();
 		~Connection();
 
-		void connect(const std::string& addr, u32 port);
+		bool connect(const std::string& addr, u32 port);
+		void disconnect();
+		
+		void send(const std::string& msg);
+
+		inline bool is_connected(){ return mSocket != INVALID_SOCKET; }
 	private:
+		SOCKET mSocket;
+		std::jthread mThread;
 	};
 
 	class Server {
@@ -22,8 +31,11 @@ namespace Slick::Net {
 		void stop();
 
 		inline bool is_active() const { return mActive; }
+
 	private:
 		bool mActive;
+		SOCKET mSocket;
+		std::jthread mServerThread;
 	};
 
 }

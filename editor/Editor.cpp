@@ -381,8 +381,18 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 		});
 		UI::window("Network window", [&]() {
 			UI::container("Client", [&]() {
-				if (UI::button("Connect")) {
-
+				if (!mConnection.is_connected()) {
+					if (UI::button("Connect")) {
+						mConnection.connect("127.0.0.1", 5232);
+					}
+				}
+				else {
+					if (UI::button("Send hello")) {
+						mConnection.send("hello");
+					}
+					if (UI::button("Disconnect")) {
+						mConnection.disconnect();
+					}
 				}
 			});
 			UI::container("Server", [&]() {
@@ -427,7 +437,6 @@ ServerLayer::~ServerLayer() {}
 
 void ServerLayer::update(App::Application& app) {
 	if (mServer.is_active()) {
-		Utility::Log("Server");
 	}
 }
 
@@ -442,7 +451,7 @@ void ServerLayer::on_button(Input::Button kc, bool state) {}
 // Server
 
 void ServerLayer::start_server() {
-	mServer.listen(20232);
+	mServer.listen(5232);
 }
 
 void ServerLayer::stop_server() {
