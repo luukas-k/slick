@@ -64,6 +64,8 @@ namespace Slick::Editor {
 		std::vector<PBRMaterial> mMaterials;
 		Gfx::Shader mProgram;
 		Net::Connection mConnection;
+		u32 mActiveEntity;
+		std::vector<std::string> mLogHistory;
 	};
 
 	class ServerLayer {

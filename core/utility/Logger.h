@@ -33,10 +33,15 @@ namespace Slick {
 
 namespace Slick::Utility {
 
+	void register_log_handler(std::function<void(const std::string&)> cb);
+	void unregister_log_handler();
+
+	void write_log(const std::string& msg);
+
 	template<typename...T>
 	void Log(T...args) {
 		std::string formatted = format<T...>(args...);
-		std::cout << formatted << "\n";
+		write_log(formatted);
 	}
 	
 	template<typename...T>

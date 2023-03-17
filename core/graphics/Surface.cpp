@@ -84,7 +84,6 @@ namespace Slick::Gfx {
 		glfwSetScrollCallback(mHandle, [](GLFWwindow* window, double dx, double dy) {
 			Surface* surf = (Surface*)glfwGetWindowUserPointer(window);
 			surf->mOnScroll(dx, dy);
-			Utility::Log("Scroll", dx, dy);
 		});
 
 		glEnable(GL_FRAMEBUFFER_SRGB);

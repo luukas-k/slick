@@ -75,7 +75,12 @@ struct BoundingBox {
 
 EditorLayer::EditorLayer()
 	:
-	mProgram("shader/vs.glsl", "shader/fs.glsl") {
+	mProgram("shader/vs.glsl", "shader/fs.glsl"),
+	mActiveEntity(0) {
+	Utility::register_log_handler([&](const std::string& msg) {
+		mLogHistory.push_back("[" + format(mTimer.elapsed()) + "]: " + msg);
+	});
+
 	auto& mgr = mEditorScene.manager();
 
 	UI::create_context();
@@ -210,7 +215,9 @@ EditorLayer::EditorLayer()
 
 }
 
-Slick::Editor::EditorLayer::~EditorLayer() {}
+Slick::Editor::EditorLayer::~EditorLayer() {
+	Utility::unregister_log_handler();
+}
 
 void EditorLayer::update(App::Application& app) {
 	float currentTime = (float)mTimer.elapsed();
@@ -370,9 +377,29 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			UI::container("Entities", [&]() {
 				mEditorScene.manager().view([&](u32 ent) {
 					if (UI::button("Entity (" + std::to_string(ent) + ")")) {
-						mEditorScene.manager().destroy(ent);
+						mActiveEntity = ent;
 					}
 				});
+			});
+		});
+		UI::window("Entity panel", [&]() {
+			UI::container("Entity", [&]() {
+				if (mActiveEntity == 0) {
+					UI::button("No active ent");
+					return;
+				}
+				
+				if (UI::button("Delete")) {
+					mEditorScene.manager().destroy(mActiveEntity);
+					mActiveEntity = 0;
+				}
+
+				auto tf = mEditorScene.manager().get_component<TransformComponent>(mActiveEntity);
+				if (tf) {
+					UI::container("Transform", [&]() {
+						UI::button(format(tf->position));
+					});
+				}
 			});
 		});
 		UI::window("Network window", [&]() {
@@ -403,6 +430,11 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 					}
 				}
 			});
+		});
+		UI::window("Log", [&]() {
+			for (auto& msg : mLogHistory) {
+				UI::button(msg);
+			}
 		});
 	});
 

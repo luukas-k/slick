@@ -1,6 +1,4 @@
 #include "UI.h"
-#include "UI.h"
-#include "UI.h"
 
 #include "utility/Logger.h"
 #include "glad/glad.h"
@@ -70,6 +68,7 @@ namespace Slick::UI {
 		i32 size_x, size_y;
 		i32 scroll_x, scroll_y;
 		bool dragging, minimized;
+		i32 z_index;
 
 		i32 drag_x, drag_y;
 		i32 drag_cx, drag_cy;
@@ -425,8 +424,12 @@ namespace Slick::UI {
 		switch (e.type) {
 			case ElementType::Root:
 			{
-				for (auto& c : e.children) {
-					render(ctx, c);
+				std::vector<UIElement*> childs;
+				for(auto& c : e.children) childs.push_back(&c);
+				std::sort(childs.begin(), childs.end(), [](UIElement* a, UIElement* b) { return a->as_window.z_index > b->as_window.z_index; });
+
+				for (auto& c : childs) {
+					render(ctx, *c);
 				}
 				return;
 			}
@@ -497,60 +500,89 @@ namespace Slick::UI {
 		return vp.contains(s_Context->data.cx, s_Context->data.vp.h - s_Context->data.cy);
 	}
 
+	void set_window_topmost(UIContext* ctx, UIElement& e) {
+		i32 min = 99999999;
+		for (auto& s : e.parent->children) {
+			if (s.as_window.z_index < min) {
+
+				min = s.as_window.z_index;
+			}
+		}
+		for (auto& s : e.parent->children) {
+			s.as_window.z_index += 1;
+		}
+		e.as_window.z_index = min;
+	}
+
 	void update(UIContext* ctx, UIElement& e) {
 		switch (e.type) {
-		case ElementType::Window:
-		{
-			auto& wnd = e.as_window;
-			if (!wnd.dragging) {
-				if (is_hovered(e.vp.top(25).shrink(0, 50, 0, 0)) && !ctx->last_clicked && ctx->clicked && !ctx->consumed) {
-					ctx->consumed = true;
-					wnd.drag_cx = ctx->data.cx;
-					wnd.drag_cy = ctx->data.cy;
-					wnd.drag_x = wnd.offset_x;
-					wnd.drag_y = wnd.offset_y;
-					wnd.dragging = true;
+			case ElementType::Root:
+			{
+				std::vector<UIElement*> childs;
+				for(auto& c : e.children) childs.push_back(&c);
+				// Sort top to bottom to update in order to update top to bottom order
+				std::sort(childs.begin(), childs.end(), [](UIElement* a, UIElement* b) { return a->as_window.z_index < b->as_window.z_index; });
+
+				for (auto& c : childs) {
+					update(ctx, *c);
 				}
-				if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked && !ctx->consumed) {
-					ctx->consumed = true;
-					e.as_window.minimized = !e.as_window.minimized;
-				}
-				if (is_hovered(e.vp.shrink(0, 0, 25, 0))) {
-					e.as_window.scroll_x -= ctx->data.scroll_x * 25;
-					e.as_window.scroll_y -= ctx->data.scroll_y * 25;
-					ctx->data.scroll_x = 0;
-					ctx->data.scroll_y = 0;
-					if(e.as_window.scroll_x < 0)
-						e.as_window.scroll_x = 0;
-					if(e.as_window.scroll_y < 0)
-						e.as_window.scroll_y = 0;
-				}
+
+				return;
 			}
-			else {
-				i32 new_ox = wnd.drag_x + (wnd.drag_cx - ctx->data.cx);
-				i32 new_oy = wnd.drag_y + (wnd.drag_cy - ctx->data.cy);
-
-				wnd.offset_x = new_ox;
-				wnd.offset_y = new_oy;
-
-				if (!ctx->clicked) {
-					wnd.dragging = false;
+			case ElementType::Window:
+			{
+				auto& wnd = e.as_window;
+				if (!wnd.dragging) {
+					if (is_hovered(e.vp.top(25).shrink(0, 50, 0, 0)) && !ctx->last_clicked && ctx->clicked && !ctx->consumed) {
+						ctx->consumed = true;
+						wnd.drag_cx = ctx->data.cx;
+						wnd.drag_cy = ctx->data.cy;
+						wnd.drag_x = wnd.offset_x;
+						wnd.drag_y = wnd.offset_y;
+						wnd.dragging = true;
+						set_window_topmost(ctx, e);
+					}
+					if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked && !ctx->consumed) {
+						ctx->consumed = true;
+						e.as_window.minimized = !e.as_window.minimized;
+						set_window_topmost(ctx, e);
+					}
+					if (is_hovered(e.vp.shrink(0, 0, 25, 0))) {
+						e.as_window.scroll_x -= ctx->data.scroll_x * 25;
+						e.as_window.scroll_y -= ctx->data.scroll_y * 25;
+						ctx->data.scroll_x = 0;
+						ctx->data.scroll_y = 0;
+						if(e.as_window.scroll_x < 0)
+							e.as_window.scroll_x = 0;
+						if(e.as_window.scroll_y < 0)
+							e.as_window.scroll_y = 0;
+					}
 				}
+				else {
+					i32 new_ox = wnd.drag_x + (wnd.drag_cx - ctx->data.cx);
+					i32 new_oy = wnd.drag_y + (wnd.drag_cy - ctx->data.cy);
+
+					wnd.offset_x = new_ox;
+					wnd.offset_y = new_oy;
+
+					if (!ctx->clicked) {
+						wnd.dragging = false;
+					}
+				}
+				break;
 			}
-			break;
-		}
-		case ElementType::Button:
-		{
-			auto& btn = e.as_button;
+			case ElementType::Button:
+			{
+				auto& btn = e.as_button;
 
-			btn.hovered = is_hovered(e.vp);
+				btn.hovered = is_hovered(e.vp);
 
-			if (!btn.clicked) {
-				btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
+				if (!btn.clicked) {
+					btn.clicked = is_hovered(e.vp) && ctx->last_clicked && !ctx->clicked;
+				}
+
+				break;
 			}
-
-			break;
-		}
 		}
 
 		for (auto& c : e.children) {
@@ -638,6 +670,7 @@ namespace Slick::UI {
 		return {0, 0};
 	}
 
+
 	bool begin_window(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Window, label);
 
@@ -653,6 +686,7 @@ namespace Slick::UI {
 			elem->as_window.size_y = 250;
 			elem->as_window.scroll_y = 0;
 			elem->as_window.scroll_y = 0;
+			elem->as_window.z_index = 0;
 
 			elem->is_new = false;
 		}

@@ -11,6 +11,7 @@
 #include <array>
 #include <mutex>
 #include <thread>
+#include <algorithm>
 
 namespace Slick {
 	
