@@ -26,11 +26,13 @@ namespace Slick {
 			void set_key_callback(std::function<void(Input::Key, bool)> cb);
 			void set_button_callback(std::function<void(Input::Button, bool)> cb);
 			void set_cursor_move_callback(std::function<void(i32, i32)> cb);
+			void set_scroll_callback(std::function<void(i32, i32)> cb);
 		private:
 			GLFWwindow* mHandle;
 			std::function<void(Input::Key, bool)> mOnKey;
 			std::function<void(Input::Button, bool)> mOnButton;
 			std::function<void(i32, i32)> mOnCursorMove;
+			std::function<void(i32, i32)> mOnScroll;
 		};
 
 	}

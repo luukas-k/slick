@@ -33,7 +33,8 @@ namespace Slick::Gfx {
 		mHandle(nullptr),
 		mOnKey([](Input::Key, bool){}),
 		mOnButton([](Input::Button, bool){}),
-		mOnCursorMove([](i32,i32){})
+		mOnCursorMove([](i32,i32){}),
+		mOnScroll([](i32,i32){})
 	{
 		glfwInit();
 		
@@ -78,6 +79,12 @@ namespace Slick::Gfx {
 		glfwSetCursorPosCallback(mHandle, [](GLFWwindow* window, double cx, double cy){
 			Surface* surf = (Surface*)glfwGetWindowUserPointer(window);
 			surf->mOnCursorMove((i32)cx, (i32)cy);
+		});
+
+		glfwSetScrollCallback(mHandle, [](GLFWwindow* window, double dx, double dy) {
+			Surface* surf = (Surface*)glfwGetWindowUserPointer(window);
+			surf->mOnScroll(dx, dy);
+			Utility::Log("Scroll", dx, dy);
 		});
 
 		glEnable(GL_FRAMEBUFFER_SRGB);
@@ -127,6 +134,13 @@ namespace Slick::Gfx {
 
 	void Surface::set_cursor_move_callback(std::function<void(i32, i32)> cb) {
 		mOnCursorMove = [old_cb = mOnCursorMove, new_cb = cb](i32 x, i32 y) {
+			new_cb(x, y);
+			old_cb(x, y);
+		};
+	}
+
+	void Surface::set_scroll_callback(std::function<void(i32, i32)> cb) {
+		mOnScroll = [old_cb = mOnScroll, new_cb = cb](i32 x, i32 y) {
 			new_cb(x, y);
 			old_cb(x, y);
 		};

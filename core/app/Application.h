@@ -24,7 +24,8 @@ namespace Slick {
 					[](void* ptr, Application* app, i32 w, i32 h){ ((T*)ptr)->render(*app, w, h); },
 					[](void* ptr, Input::Key kc, bool b) { ((T*)ptr)->on_key(kc, b); },
 					[](void* ptr, Input::Button kc, bool b) { ((T*)ptr)->on_button(kc, b); },
-					[](void* ptr, i32 x, i32 y){ ((T*)ptr)->on_cursor_move(x, y); }
+					[](void* ptr, i32 x, i32 y){ ((T*)ptr)->on_cursor_move(x, y); },
+					[](void* ptr, i32 x, i32 y){ ((T*)ptr)->on_scroll(x, y); },
 				});
 			}
 
@@ -55,6 +56,7 @@ namespace Slick {
 				void(*on_key)(void*, Input::Key, bool);
 				void(*on_button)(void*, Input::Button, bool);
 				void(*on_cursor_move)(void*, i32, i32);
+				void(*on_scroll)(void*, i32, i32);
 			};
 			Gfx::Surface mSurface;
 			std::vector<LayerInfo> mLayers;

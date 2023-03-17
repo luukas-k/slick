@@ -53,7 +53,6 @@ namespace Slick::UI {
 	struct UIContainer {
 		bool is_open;
 		ContainerLayout layout;
-		// Math::fVec3 color;
 	};
 
 	struct UIButton {
@@ -68,7 +67,10 @@ namespace Slick::UI {
 
 	struct UIWindow {
 		i32 offset_x, offset_y;
+		i32 size_x, size_y;
+		i32 scroll_x, scroll_y;
 		bool dragging, minimized;
+
 		i32 drag_x, drag_y;
 		i32 drag_cx, drag_cy;
 	};
@@ -97,6 +99,8 @@ namespace Slick::UI {
 		std::unordered_map<std::string, u32> textures;
 		bool clicked, last_clicked;
 		bool consumed;
+
+		std::vector<Gfx::Viewport> clamp_viewport;
 	};
 
 	UIContext* s_Context = nullptr;
@@ -181,7 +185,7 @@ namespace Slick::UI {
 	void set_current_as_parent() {
 		u32 left = s_Context->current->children.size() - s_Context->current->current_index;
 		if (left > 0) {
-			Utility::Log("Deleted left overs n = ", left, ".");
+			// Utility::Log("Deleted left overs n = ", left, ".");
 			s_Context->current->children.erase(s_Context->current->children.begin() + s_Context->current->current_index, s_Context->current->children.begin() + s_Context->current->current_index + left);
 		}
 		s_Context->current = s_Context->current->parent;
@@ -289,7 +293,6 @@ namespace Slick::UI {
 			ctx->screen_w = e.vp.w;
 			ctx->screen_h = e.vp.h;
 
-			// Utility::Assert(e.children.size() == 1, "Root can only have a single child element.");
 			for (auto& r : e.children) {
 				relayout(ctx, r, e.vp);
 			}
@@ -302,7 +305,7 @@ namespace Slick::UI {
 			// Utility::Log(e.as_window.offset_x, e.as_window.offset_y);
 
 			Gfx::Viewport header = e.vp.top(25);
-			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0).shrink(5, 5, 5, 5);
+			Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0).shrink(5, 5, 5, 5).offset(e.as_window.scroll_x, e.as_window.scroll_y);
 
 			if(!e.as_window.minimized){
 				if (e.as_container.layout == ContainerLayout::Vertical) {
@@ -375,7 +378,21 @@ namespace Slick::UI {
 	}
 
 	void render(UIContext* ctx, UIElement& e) {
+		auto clamp = [&](Gfx::Viewport vp) {
+			ctx->clamp_viewport.push_back(vp);
+		};
+		auto unclamp = [&]() {
+			ctx->clamp_viewport.pop_back();
+		};
+		auto get_clamp_vp = [&]() {
+			if (ctx->clamp_viewport.size() > 0) {
+				return ctx->clamp_viewport[ctx->clamp_viewport.size() - 1];
+			}
+			return Gfx::Viewport{-99999, -99999, 2 * 99999, 2 * 99999};
+		};
 		auto draw_vp = [&](Gfx::Viewport vp, Math::fVec3 color, i32 border_radius) {
+			if(!get_clamp_vp().contains(vp)) return;
+
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
@@ -384,6 +401,8 @@ namespace Slick::UI {
 			);
 		};
 		auto draw_tex = [&](Gfx::Viewport vp, const std::string& name, i32 border_radius) {
+			if(!get_clamp_vp().contains(vp)) return;
+
 			ctx->renderer.submit_rect(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
@@ -393,6 +412,8 @@ namespace Slick::UI {
 			);
 		};
 		auto draw_text = [&](Gfx::Viewport vp, const std::string& text) {
+			if(!get_clamp_vp().contains(vp)) return;
+
 			ctx->renderer.submit_text(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
 				(float)vp.h / ctx->data.vp.h,
@@ -421,11 +442,14 @@ namespace Slick::UI {
 				draw_vp(close.shrink(3, 3, 3, 3), { 1.f, 0.f, 0.f }, 10);
 				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
 				draw_text(header.offset(5, 4), e.label);
+
+				clamp(content);
 				if (!e.as_window.minimized) {
 					for (auto& c : e.children) {
 						render(ctx, c);
 					}
 				}
+				unclamp();
 				return;
 			}
 			case ElementType::Container:
@@ -438,6 +462,7 @@ namespace Slick::UI {
 				draw_vp(content, { 0.2f, 0.2f, 0.2f }, 10);
 				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
 				draw_text(header.offset(5, 4), e.label);
+
 				for (auto& c : e.children) {
 					render(ctx, c);
 				}
@@ -488,6 +513,16 @@ namespace Slick::UI {
 				if (is_hovered(e.vp.top(25).right(25).offset(-25, 0)) && ctx->last_clicked && !ctx->clicked && !ctx->consumed) {
 					ctx->consumed = true;
 					e.as_window.minimized = !e.as_window.minimized;
+				}
+				if (is_hovered(e.vp.shrink(0, 0, 25, 0))) {
+					e.as_window.scroll_x -= ctx->data.scroll_x * 25;
+					e.as_window.scroll_y -= ctx->data.scroll_y * 25;
+					ctx->data.scroll_x = 0;
+					ctx->data.scroll_y = 0;
+					if(e.as_window.scroll_x < 0)
+						e.as_window.scroll_x = 0;
+					if(e.as_window.scroll_y < 0)
+						e.as_window.scroll_y = 0;
 				}
 			}
 			else {
@@ -613,7 +648,11 @@ namespace Slick::UI {
 			auto[px, py] = new_window_position();
 			elem->as_window.offset_x = px;
 			elem->as_window.offset_y = py;
-			
+			elem->as_window.size_x = 250;
+			elem->as_window.size_y = 250;
+			elem->as_window.scroll_y = 0;
+			elem->as_window.scroll_y = 0;
+
 			elem->is_new = false;
 		}
 

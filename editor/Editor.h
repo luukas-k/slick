@@ -53,7 +53,7 @@ namespace Slick::Editor {
 		void on_key(Input::Key kc, bool state);
 		void on_button(Input::Button kc, bool state);
 		void on_cursor_move(i32 x, i32 y);
-
+		void on_scroll(i32, i32);
 	private:
 		App::Scene mEditorScene;
 		Input::InputManager mInput;
@@ -77,6 +77,7 @@ namespace Slick::Editor {
 		void on_cursor_move(i32 w, i32 h);
 		void on_key(Input::Key kc, bool state);
 		void on_button(Input::Button kc, bool state);
+		inline void on_scroll(i32, i32){}
 
 		// Server
 		void start_server();

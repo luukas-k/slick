@@ -10,6 +10,7 @@ namespace Slick::UI {
 		Gfx::Viewport vp;
 		i32 cx, cy;
 		bool clicked;
+		i32 scroll_x, scroll_y;
 	};
 
 	UIData* create_context();

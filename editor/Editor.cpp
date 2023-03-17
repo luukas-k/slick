@@ -409,6 +409,9 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			});
 		});
 	});
+
+	data->scroll_x = 0;
+	data->scroll_y = 0;
 }
 
 void EditorLayer::on_key(Input::Key kc, bool state) {
@@ -427,6 +430,12 @@ void EditorLayer::on_cursor_move(i32 x, i32 y) {
 	data->cx = x;
 	data->cy = y;
 	mInput.on_cursor_move(x, y);
+}
+
+void EditorLayer::on_scroll(i32 x, i32 y) {
+	auto data = UI::get_ui_data();
+	data->scroll_x += x;
+	data->scroll_y += y;
 }
 
 ServerLayer::ServerLayer() {}

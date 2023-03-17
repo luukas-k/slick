@@ -21,6 +21,11 @@ namespace Slick::App{
 				l.on_cursor_move(l.data, x, y);
 			}
 		});
+		mSurface.set_scroll_callback([this](i32 x, i32 y) {
+			for (auto& l : mLayers) {
+				l.on_scroll(l.data, x, y);
+			}
+		});
 	}
 	Application::~Application() {}
 
