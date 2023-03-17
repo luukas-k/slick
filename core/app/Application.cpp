@@ -30,9 +30,6 @@ namespace Slick::App{
 	Application::~Application() {}
 
 	void Application::run() {
-		u32 i = 0;
-		Utility::Timer frame_timer;
-
 		while (!mSurface.should_close()) {
 			mSurface.update();
 			for (auto& ld : mLayers) {
@@ -42,13 +39,6 @@ namespace Slick::App{
 				ld.on_render(ld.data, this, mSurface.width(), mSurface.height());
 			}
 			mSurface.present();
-
-			i++;
-			if (i == 5000) {
-				float t = frame_timer.elapsed() / 5000;
-				Utility::Log(1. / t, t);
-				i = 0;
-			}
 		}
 	}
 

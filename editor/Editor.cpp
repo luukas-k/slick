@@ -226,7 +226,6 @@ void EditorLayer::update(App::Application& app) {
 		fixed_update(dt);
 		mLastUpdate += dt;
 	}
-	// Utility::Log(mFrames / mTimer.elapsed(), mTimer.elapsed() / mFrames);
 	mFrames++;
 }
 
@@ -250,6 +249,11 @@ void EditorLayer::fixed_update(float dt) {
 }
 
 void EditorLayer::render(App::Application& app, i32 w, i32 h) {
+	float current = mTimer.elapsed();
+	float dt = current - mLastRender;
+	mLastRender = current;
+	mFrameDelta = dt;
+
 	auto data = UI::get_ui_data();
 	data->vp = { 0, 0, w, h };
 
@@ -432,6 +436,12 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			});
 		});
 		UI::window("Log", [&]() {
+			UI::button("DT:  " + format(mFrameDelta));
+			static float t = 0.f;
+			UI::button("FPS: " + format(1.f / mFrameDelta));
+			if(UI::button("FPS: " + format(t))) {
+				t = 1.f / mFrameDelta;
+			}
 			for (auto& msg : mLogHistory) {
 				UI::button(msg);
 			}

@@ -158,7 +158,7 @@ namespace Slick::UI {
 			if (e.type == type && e.label == label) {
 				u32 skipped = i - s_Context->current->current_index;
 				if (skipped > 0) {
-					Utility::Log("[UI]: Skipped n = ", skipped, " and deleted them.");
+					// Utility::Log("[UI]: Skipped n = ", skipped, " and deleted them.");
 					s_Context->current->children.erase(s_Context->current->children.begin() + s_Context->current->current_index, s_Context->current->children.begin() + s_Context->current->current_index + skipped);
 				}
 				s_Context->current->current_index++;

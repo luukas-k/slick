@@ -58,7 +58,8 @@ namespace Slick::Editor {
 		App::Scene mEditorScene;
 		Input::InputManager mInput;
 		Utility::Timer mTimer;
-		float mLastUpdate;
+		float mLastUpdate, mLastRender;
+		float mFrameDelta;
 		u32 vao{};
 		std::vector<RenderCommand> mRenderCommands;
 		std::vector<PBRMaterial> mMaterials;
