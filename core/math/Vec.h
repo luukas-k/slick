@@ -62,6 +62,13 @@ namespace Slick::Math {
 		inline const float& operator[](int i) const { return (&x)[i]; }
 	};
 
+	template<typename T>
+	T clamp(T min, T max, T v) {
+		if (v < min) return min;
+		if (v > max) return max;
+		return v;
+	}
+
 }
 
 

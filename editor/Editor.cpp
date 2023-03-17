@@ -53,20 +53,16 @@ Format format_from_ctype_and_type(GLTFElementType ct, GLTFType t) {
 	return Format::Unknown;
 };
 
-float clamp(float min, float max, float v) {
-	if (v < min) return min;
-	if (v > max) return max;
-	return v;
-}
+
 
 struct BoundingBox {
 	Math::fVec3 min, max;
 
 	float sq_distance(Math::fVec3 p) {
 		Math::fVec3 p2{
-			clamp(min.x, max.x, p.x),
-			clamp(min.y, max.y, p.y),
-			clamp(min.z, max.z, p.z)
+			Math::clamp(min.x, max.x, p.x),
+			Math::clamp(min.y, max.y, p.y),
+			Math::clamp(min.z, max.z, p.z)
 		};
 		float dx = p2.x - p.x;
 		float dy = p2.y - p.y;

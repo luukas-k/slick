@@ -391,11 +391,12 @@ namespace Slick::UI {
 			return Gfx::Viewport{-99999, -99999, 2 * 99999, 2 * 99999};
 		};
 		auto draw_vp = [&](Gfx::Viewport vp, Math::fVec3 color, i32 border_radius) {
-			if(!get_clamp_vp().contains(vp)) return;
+			i32 top_y = Math::clamp<i32>(get_clamp_vp().y, get_clamp_vp().y + get_clamp_vp().h, vp.y + vp.h);
+			i32 bottom_y = Math::clamp<i32>(get_clamp_vp().y, get_clamp_vp().y + get_clamp_vp().h, vp.y);
 
 			ctx->renderer.submit_rect(
-				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
-				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(vp.y + vp.h) / ctx->data.vp.h },
+				{ (float)vp.x / ctx->data.vp.w, (float)bottom_y / ctx->data.vp.h },
+				{ (float)(vp.x + vp.w) / ctx->data.vp.w, (float)(top_y) / ctx->data.vp.h },
 				color,
 				(float)border_radius // vp.w
 			);

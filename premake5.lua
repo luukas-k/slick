@@ -21,7 +21,7 @@ workspace "Slick"
         }
 
         filter { "configurations:Debug" }
-            defines { "DEBUG" }
+            defines { "DEBUG", "_ITERATOR_DEBUG_LEVEL=0" }
             optimize "Debug"
             symbols "On"
 
@@ -55,7 +55,7 @@ workspace "Slick"
         }
 
         filter { "configurations:Debug" }
-            defines { "DEBUG" }
+            defines { "DEBUG", "_ITERATOR_DEBUG_LEVEL=0" }
             symbols "On"
 
         filter { "configurations:Release" }
