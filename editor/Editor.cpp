@@ -8,52 +8,50 @@
 using namespace Slick;
 using namespace Slick::Editor;
 
-u32 format_type(Slick::Editor::Format f) {
+u32 format_type(Format f) {
 	switch (f) {
-	case Slick::Editor::Format::Float4: return GL_FLOAT;
-	case Slick::Editor::Format::Float3: return GL_FLOAT;
-	case Slick::Editor::Format::Float2: return GL_FLOAT;
-	case Slick::Editor::Format::Float1: return GL_FLOAT;
-	case Slick::Editor::Format::UInt16: return GL_UNSIGNED_SHORT;
+	case Format::Float4: return GL_FLOAT;
+	case Format::Float3: return GL_FLOAT;
+	case Format::Float2: return GL_FLOAT;
+	case Format::Float1: return GL_FLOAT;
+	case Format::UInt16: return GL_UNSIGNED_SHORT;
 	}
 	Utility::Assert(false);
 	return 0;
 }
 
-u32 format_count(Slick::Editor::Format f) {
+u32 format_count(Format f) {
 	switch (f) {
-	case Slick::Editor::Format::Float4: return 4;
-	case Slick::Editor::Format::Float3: return 3;
-	case Slick::Editor::Format::Float2: return 2;
-	case Slick::Editor::Format::Float1: return 1;
-	case Slick::Editor::Format::UInt16: return 1;
+	case Format::Float4: return 4;
+	case Format::Float3: return 3;
+	case Format::Float2: return 2;
+	case Format::Float1: return 1;
+	case Format::UInt16: return 1;
 	}
 	Utility::Assert(false);
 	return 0;
 }
 
-Slick::Editor::Format format_from_ctype_and_type(Editor::GLTFElementType ct, Editor::GLTFType t) {
-	if (ct == Editor::GLTFElementType::FLOAT) {
-		if (t == Editor::GLTFType::VEC4) {
-			return Slick::Editor::Format::Float4;
+Format format_from_ctype_and_type(GLTFElementType ct, GLTFType t) {
+	if (ct == GLTFElementType::FLOAT) {
+		if (t == GLTFType::VEC4) {
+			return Format::Float4;
 		}
-		else if (t == Editor::GLTFType::VEC3) {
-			return Slick::Editor::Format::Float3;
+		else if (t == GLTFType::VEC3) {
+			return Format::Float3;
 		}
-		else if (t == Editor::GLTFType::VEC2) {
-			return Slick::Editor::Format::Float2;
+		else if (t == GLTFType::VEC2) {
+			return Format::Float2;
 		}
 	}
-	else if (ct == Editor::GLTFElementType::UNSIGNED_SHORT) {
-		if (t == Editor::GLTFType::SCALAR) {
-			return Slick::Editor::Format::UInt16;
+	else if (ct == GLTFElementType::UNSIGNED_SHORT) {
+		if (t == GLTFType::SCALAR) {
+			return Format::UInt16;
 		}
 	}
 	Utility::Assert(false);
-	return Slick::Editor::Format::Unknown;
+	return Format::Unknown;
 };
-
-
 
 float clamp(float min, float max, float v) {
 	if (v < min) return min;
@@ -78,33 +76,8 @@ struct BoundingBox {
 };
 
 
-//class RenderSystem {
-//public:
-//	RenderSystem() {}
-//	~RenderSystem() {}
-//
-//	void update(App::Scene& scene) {
-//
-//	}
-//private:
-//};
 
-
-int main() {
-	App::Application app;
-
-	Slick::Editor::ServerLayer* slayer = new Slick::Editor::ServerLayer();
-	app.add_layer("ServerLayer", slayer);
-
-	Slick::Editor::EditorLayer* layer = new Slick::Editor::EditorLayer();
-	app.add_layer("EditorLayer", layer);
-
-	app.run();
-
-	return 0;
-}
-
-Slick::Editor::EditorLayer::EditorLayer()
+EditorLayer::EditorLayer()
 	:
 	mProgram("shader/vs.glsl", "shader/fs.glsl") {
 	auto& mgr = mEditorScene.manager();
@@ -243,7 +216,7 @@ Slick::Editor::EditorLayer::EditorLayer()
 
 Slick::Editor::EditorLayer::~EditorLayer() {}
 
-void Slick::Editor::EditorLayer::update(App::Application& app) {
+void EditorLayer::update(App::Application& app) {
 	float currentTime = (float)mTimer.elapsed();
 	float dt = 1.f / 100.f;
 	while (mLastUpdate + dt < currentTime) {
@@ -254,7 +227,7 @@ void Slick::Editor::EditorLayer::update(App::Application& app) {
 	mFrames++;
 }
 
-void Slick::Editor::EditorLayer::fixed_update(float dt) {
+void EditorLayer::fixed_update(float dt) {
 	mInput.update();
 	mEditorScene.update(dt);
 
@@ -273,7 +246,7 @@ void Slick::Editor::EditorLayer::fixed_update(float dt) {
 		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * sensitivity, (float)-mInput.cursor_dx() * sensitivity, 0.f });
 }
 
-void Slick::Editor::EditorLayer::render(App::Application& app, i32 w, i32 h) {
+void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 	auto data = UI::get_ui_data();
 	data->vp = { 0, 0, w, h };
 
@@ -428,54 +401,66 @@ void Slick::Editor::EditorLayer::render(App::Application& app, i32 w, i32 h) {
 	});
 }
 
-void Slick::Editor::EditorLayer::on_key(Input::Key kc, bool state) {
+void EditorLayer::on_key(Input::Key kc, bool state) {
 	mInput.on_key(kc, state);
 }
 
-void Slick::Editor::EditorLayer::on_button(Input::Button kc, bool state) {
+void EditorLayer::on_button(Input::Button kc, bool state) {
 	mInput.on_button(kc, state);
 	auto data = UI::get_ui_data();
 	if (kc == Input::Button::Button_Left)
 		data->clicked = state;
 }
 
-void Slick::Editor::EditorLayer::on_cursor_move(i32 x, i32 y) {
+void EditorLayer::on_cursor_move(i32 x, i32 y) {
 	auto data = UI::get_ui_data();
 	data->cx = x;
 	data->cy = y;
 	mInput.on_cursor_move(x, y);
 }
 
-Slick::Editor::ServerLayer::ServerLayer() {}
+ServerLayer::ServerLayer() {}
 
-Slick::Editor::ServerLayer::~ServerLayer() {}
+ServerLayer::~ServerLayer() {}
 
 // Layer
 
-void Slick::Editor::ServerLayer::update(App::Application& app) {
+void ServerLayer::update(App::Application& app) {
 	if (mServer.is_active()) {
 		Utility::Log("Server");
 	}
 }
 
-void Slick::Editor::ServerLayer::render(App::Application& app, i32 w, i32 h) {}
+void ServerLayer::render(App::Application& app, i32 w, i32 h) {}
 
-void Slick::Editor::ServerLayer::on_cursor_move(i32 w, i32 h) {}
+void ServerLayer::on_cursor_move(i32 w, i32 h) {}
 
-void Slick::Editor::ServerLayer::on_key(Input::Key kc, bool state) {}
+void ServerLayer::on_key(Input::Key kc, bool state) {}
 
-void Slick::Editor::ServerLayer::on_button(Input::Button kc, bool state) {}
+void ServerLayer::on_button(Input::Button kc, bool state) {}
 
 // Server
 
-void Slick::Editor::ServerLayer::start_server() {
+void ServerLayer::start_server() {
 	mServer.listen(20232);
 }
 
-void Slick::Editor::ServerLayer::stop_server() {
+void ServerLayer::stop_server() {
 	mServer.stop();
 }
 
-bool Slick::Editor::ServerLayer::is_active() {
+bool ServerLayer::is_active() {
 	return mServer.is_active();
+}
+
+
+int main() {
+	App::Application app;
+
+	app.create_layer<ServerLayer>("ServerLayer");
+	app.create_layer<EditorLayer>("EditorLayer");
+
+	app.run();
+
+	return 0;
 }

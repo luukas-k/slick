@@ -28,6 +28,13 @@ namespace Slick {
 				});
 			}
 
+			template<typename T, typename...K>
+			T* create_layer(const std::string& name, K...args) {
+				T* layer = new T(std::forward<K>(args)...);
+				add_layer(name, layer);
+				return layer;
+			}
+
 			template<typename T>
 			T* get_layer() {
 				for (auto& l : mLayers) {

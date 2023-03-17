@@ -29,8 +29,6 @@ namespace Slick::Editor {
 
 		i32 indexBuffer, indexOffset, indexCount;
 		Format indexFormat;
-
-		// PBRMaterial material;
 	};
 
 	struct PBRMaterial {
