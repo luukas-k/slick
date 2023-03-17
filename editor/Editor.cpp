@@ -216,6 +216,8 @@ EditorLayer::EditorLayer()
 }
 
 Slick::Editor::EditorLayer::~EditorLayer() {
+	UI::destroy_ui();
+
 	Utility::unregister_log_handler();
 }
 

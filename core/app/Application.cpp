@@ -27,7 +27,11 @@ namespace Slick::App{
 			}
 		});
 	}
-	Application::~Application() {}
+	Application::~Application() {
+		for (auto& l : mLayers) {
+			l.on_delete(l.data);
+		}
+	}
 
 	void Application::run() {
 		while (!mSurface.should_close()) {

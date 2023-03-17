@@ -14,6 +14,10 @@ namespace Slick::UI {
 	};
 
 	UIData* create_context();
+	void destroy_ui();
+
+	void serialize_ui();
+
 	UIData* get_ui_data();
 	
 	void begin_frame();

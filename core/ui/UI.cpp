@@ -148,6 +148,19 @@ namespace Slick::UI {
 		return &s_Context->data;
 	}
 
+	void destroy_ui() {
+		std::string file_data;
+		auto write = [&](const std::string& line) {
+			file_data.append(line + "\n");
+		};
+		for (auto& c : s_Context->root.children) {
+			write("[" + c.label + "]");
+			write("position_x=" + format(c.as_window.offset_x));
+			write("position_y=" + format(c.as_window.offset_y));
+		}
+		std::cout << file_data << "\n";
+	}
+
 	UIData* get_ui_data() {
 		return &s_Context->data;
 	}
