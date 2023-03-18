@@ -71,15 +71,19 @@ struct BoundingBox {
 	}
 };
 
-
+struct Message {
+	u32 a, b;
+};
 
 EditorLayer::EditorLayer()
 	:
 	mProgram("shader/vs.glsl", "shader/fs.glsl"),
-	mActiveEntity(0) {
+	mActiveEntity(0), mFrameDelta(0.f), mLastRender(0.f) {
 	Utility::register_log_handler([&](const std::string& msg) {
 		mLogHistory.push_back("[" + format(mTimer.elapsed()) + "]: " + msg);
 	});
+
+	mConnection.register_type<Message>(1);
 
 	auto& mgr = mEditorScene.manager();
 
@@ -417,7 +421,11 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 				}
 				else {
 					if (UI::button("Send hello")) {
-						mConnection.send("hello");
+						// mConnection.send("hello");
+						mConnection.send<Message>(Message{
+							.a = 5,
+							.b = 16
+						});
 					}
 					if (UI::button("Disconnect")) {
 						mConnection.disconnect();
@@ -478,7 +486,14 @@ void EditorLayer::on_scroll(i32 x, i32 y) {
 	data->scroll_y += y;
 }
 
-ServerLayer::ServerLayer() {}
+ServerLayer::ServerLayer() 
+{
+	mServer.register_type<Message>(1);
+
+	mServer.on<Message>([](const Message& m) {
+		Utility::Log("Server", m.a, m.b);
+	});
+}
 
 ServerLayer::~ServerLayer() {}
 

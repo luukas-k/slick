@@ -65,8 +65,8 @@ namespace Slick::Net {
 		mSocket = INVALID_SOCKET;
 	}
 
-	void Connection::send(const std::string& msg) {
-		sendto(mSocket, msg.data(), msg.size(), 0, nullptr, 0);
+	void Connection::send_data(const char* msg, size_t len) {
+		sendto(mSocket, msg, len, 0, nullptr, 0);
 	}
 
 	Server::Server() 
@@ -111,13 +111,28 @@ namespace Slick::Net {
 
 		mServerThread = std::jthread([this](std::stop_token t) {
 			char data[1024]{};
+			intptr_t offset = 0;
+
 			while (!t.stop_requested()) {
 				sockaddr from{};
 				i32 fromLen = sizeof(sockaddr);
-				i32 res = recvfrom(mSocket, data, 1024, 0, &from, &fromLen);
+				i32 res = recvfrom(mSocket, data + offset, 1024 - offset, 0, &from, &fromLen);
 
 				if (res > 0) {
-					sendto(mSocket, data, res, 0, (sockaddr*)&from, sizeof(sockaddr));
+					offset += res;
+					u32 msg = *(u32*)data;
+					if (mTypeSizes.contains(msg)) {
+						u32 size = mTypeSizes[msg];
+						if (offset >= size) {
+							if (mMessageHandlers.contains(msg)) {
+								mMessageHandlers[msg](data, size);
+								memmove(data, data + size, offset - size);
+								offset -= size;
+							}
+						}
+					}
+					
+					// sendto(mSocket, data, res, 0, (sockaddr*)&from, sizeof(sockaddr));
 					Utility::Log("[Serv]: Received", std::string(data, res));
 				}
 			}
