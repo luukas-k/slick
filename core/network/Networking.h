@@ -5,7 +5,7 @@
 #include <WinSock2.h>
 
 namespace Slick::Net {
-
+	
 	class Connection {
 	public:
 		Connection();
@@ -20,6 +20,7 @@ namespace Slick::Net {
 				u32 tid;
 				T v;
 			};
+			
 			mTypeIds[type_id<T>()] = tid;
 			mTypeSizes[type_id<T>()] = sizeof(Message);
 		}
@@ -83,7 +84,7 @@ namespace Slick::Net {
 
 		template<typename FN>
 		void on_connect(FN&& fn) {
-
+			mOnConnect = fn;
 		}
 
 		template<typename FN>
@@ -129,6 +130,7 @@ namespace Slick::Net {
 		std::unordered_map<u32, u32> mTypeIds;
 		std::unordered_map<u32, u32> mTypeSizes;
 		std::unordered_map<u32, std::function<void(const char*, size_t, u32)>> mMessageHandlers;
+		std::function<void(u32)> mOnConnect;
 		struct Address {
 			u32 ip;
 			u16 port;

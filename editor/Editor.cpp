@@ -10,11 +10,11 @@ using namespace Slick::Editor;
 
 u32 format_type(Format f) {
 	switch (f) {
-	case Format::Float4: return GL_FLOAT;
-	case Format::Float3: return GL_FLOAT;
-	case Format::Float2: return GL_FLOAT;
-	case Format::Float1: return GL_FLOAT;
-	case Format::UInt16: return GL_UNSIGNED_SHORT;
+		case Format::Float4: return GL_FLOAT;
+		case Format::Float3: return GL_FLOAT;
+		case Format::Float2: return GL_FLOAT;
+		case Format::Float1: return GL_FLOAT;
+		case Format::UInt16: return GL_UNSIGNED_SHORT;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -22,11 +22,11 @@ u32 format_type(Format f) {
 
 u32 format_count(Format f) {
 	switch (f) {
-	case Format::Float4: return 4;
-	case Format::Float3: return 3;
-	case Format::Float2: return 2;
-	case Format::Float1: return 1;
-	case Format::UInt16: return 1;
+		case Format::Float4: return 4;
+		case Format::Float3: return 3;
+		case Format::Float2: return 2;
+		case Format::Float1: return 1;
+		case Format::UInt16: return 1;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -449,7 +449,8 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			});
 		});
 		UI::window("Log", [&]() {
-			for (auto& msg : mLogHistory) {
+			for (u32 i = 0; i < mLogHistory.size(); i++) {
+				auto& msg = mLogHistory[mLogHistory.size() - 1 - i];
 				UI::button(msg);
 			}
 		});
@@ -495,6 +496,10 @@ ServerLayer::ServerLayer()
 {
 	mServer.register_type<Message>(1);
 
+	mServer.on_connect([](u32 conn_id) {
+		Utility::Log("Connected: ", conn_id);
+	});
+
 	mServer.on<Message>([&](const Message& m, u32 conn_id) {
 		Utility::Log("Server", m.a, m.b, "From", conn_id);
 		mServer.send<Message>({ .a = m.a + 1, .b = m.b + 1 }, conn_id);
@@ -535,7 +540,7 @@ bool ServerLayer::is_active() {
 
 int main() {
 	App::Application app;
-
+	
 	app.create_layer<ServerLayer>("ServerLayer");
 	app.create_layer<EditorLayer>("EditorLayer");
 

@@ -95,6 +95,7 @@ namespace Slick::UI {
 		std::string name;
 		i32 off_x, off_y;
 		i32 z_index;
+		bool minimized;
 	};
 
 	struct UIContext {
@@ -164,7 +165,8 @@ namespace Slick::UI {
 					.name = wnd["name"],
 					.off_x = wnd["position_x"],
 					.off_y = wnd["position_y"],
-					.z_index = wnd["z_index"]
+					.z_index = wnd["z_index"],
+					.minimized = wnd["minimized"]
 				});
 			}
 		}
@@ -185,6 +187,7 @@ namespace Slick::UI {
 			wnd["position_x"] = c.as_window.offset_x;
 			wnd["position_y"] = c.as_window.offset_y;
 			wnd["z_index"] = c.as_window.z_index;
+			wnd["minimized"] = c.as_window.minimized;
 
 			result["windows"].push_back(wnd);
 		}
@@ -263,6 +266,7 @@ namespace Slick::UI {
 			}
 			case ElementType::Window:
 			{
+				Gfx::Viewport content{0,0,0,0};
 				if (e.as_container.layout == ContainerLayout::Horizontal) {
 					i32 w = 0, h = 0;
 					for (auto& c : e.children) {
@@ -273,8 +277,8 @@ namespace Slick::UI {
 					}
 					if(w < 250)
 						w = 250;
-					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
+					content = { 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
+					
 				}
 				else if (e.as_container.layout == ContainerLayout::Vertical) {
 					i32 w = 0, h = 0;
@@ -286,12 +290,14 @@ namespace Slick::UI {
 					}
 					if(w < 250)
 						w = 250;
-					Gfx::Viewport content{ 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
-					return !e.as_window.minimized ? content.grow(0, 0, 25, 0) : Gfx::Viewport{0, 0, content.w, 25};
+					content = { 0, 0, w + 10, h + ((i32)e.children.size() - 1) * 5 + 10 };
 				}
 				else {
 					Utility::Assert(false, "Unknown layout.");
 				}
+
+				// Clamp height to 400
+				return !e.as_window.minimized ? content.top(content.h < 400 ? content.h + 25 : 400) : Gfx::Viewport{0, 0, content.w, 25};
 			}
 			case ElementType::Container:
 			{
@@ -745,6 +751,7 @@ namespace Slick::UI {
 					elem->as_window.offset_x = cwd.off_x;
 					elem->as_window.offset_y = cwd.off_y;
 					elem->as_window.z_index = cwd.z_index;
+					elem->as_window.minimized = cwd.minimized;
 				}
 			}
 

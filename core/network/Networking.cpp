@@ -59,7 +59,6 @@ namespace Slick::Net {
 						u32 size = mTypeSizes[tid];
 						if (offset >= size) {
 							if (mMessageHandlers.contains(tid)) {
-
 								mMessageHandlers[tid](data, size);
 								memmove(data, data + size, offset - size);
 								offset -= size;
@@ -143,6 +142,7 @@ namespace Slick::Net {
 					.conn_id = mMaxConnectionId
 				});
 				mMaxConnectionId += 1;
+				
 				return mClients[mClients.size() - 1].conn_id;
 			};
 
@@ -159,7 +159,6 @@ namespace Slick::Net {
 						u32 size = mTypeSizes[msg];
 						if (offset >= size) {
 							if (mMessageHandlers.contains(msg)) {
-
 								mMessageHandlers[msg](data, size, find_client(from));
 								memmove(data, data + size, offset - size);
 								offset -= size;
