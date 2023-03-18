@@ -8,6 +8,8 @@
 
 #include "stb_truetype.h"
 
+#include "nlohmann/json.hpp"
+
 namespace Slick::UI {
 
 	enum struct ElementType {
@@ -89,6 +91,12 @@ namespace Slick::UI {
 		UISlider as_slider;
 	};
 
+	struct WindowCreateData {
+		std::string name;
+		i32 off_x, off_y;
+		i32 z_index;
+	};
+
 	struct UIContext {
 		UIElement root;
 		UIData data;
@@ -100,6 +108,7 @@ namespace Slick::UI {
 		bool consumed;
 
 		std::vector<Gfx::Viewport> clamp_viewport;
+		std::vector<WindowCreateData> create_window_data;
 	};
 
 	UIContext* s_Context = nullptr;
@@ -144,21 +153,51 @@ namespace Slick::UI {
 			.screen_w = 0, .screen_h = 0,
 			.renderer = Gfx::Renderer2D()
 		};
+		
+		using namespace nlohmann;
+		std::fstream fs("ui.json", std::fstream::in);
+		if (fs) {
+			json data = json::parse(fs);
+
+			for (auto& wnd : data["windows"]) {
+				s_Context->create_window_data.push_back(WindowCreateData{
+					.name = wnd["name"],
+					.off_x = wnd["position_x"],
+					.off_y = wnd["position_y"],
+					.z_index = wnd["z_index"]
+				});
+			}
+		}
 
 		return &s_Context->data;
 	}
 
 	void destroy_ui() {
-		std::string file_data;
-		auto write = [&](const std::string& line) {
-			file_data.append(line + "\n");
-		};
+		using namespace nlohmann;
+
+		json result;
+		result["windows"] = json::array();
+
 		for (auto& c : s_Context->root.children) {
-			write("[" + c.label + "]");
-			write("position_x=" + format(c.as_window.offset_x));
-			write("position_y=" + format(c.as_window.offset_y));
+			json wnd;
+			
+			wnd["name"] = c.label;
+			wnd["position_x"] = c.as_window.offset_x;
+			wnd["position_y"] = c.as_window.offset_y;
+			wnd["z_index"] = c.as_window.z_index;
+
+			result["windows"].push_back(wnd);
 		}
-		std::cout << file_data << "\n";
+
+		std::fstream fs("ui.json", std::fstream::out);
+		if (!fs) {
+			Utility::Log("Unable to open UI definition on exit.");
+			return;
+		}
+		fs.clear(); // Erase old data
+		std::string data = result.dump(4);
+		fs.write(data.c_str(), data.size());
+		fs.close();
 	}
 
 	UIData* get_ui_data() {
@@ -700,6 +739,14 @@ namespace Slick::UI {
 			elem->as_window.scroll_y = 0;
 			elem->as_window.scroll_y = 0;
 			elem->as_window.z_index = 0;
+
+			for (auto& cwd : s_Context->create_window_data) {
+				if (label == cwd.name) {
+					elem->as_window.offset_x = cwd.off_x;
+					elem->as_window.offset_y = cwd.off_y;
+					elem->as_window.z_index = cwd.z_index;
+				}
+			}
 
 			elem->is_new = false;
 		}
