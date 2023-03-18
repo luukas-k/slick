@@ -31,7 +31,7 @@ namespace Slick::Editor {
 			Data
 		} state = State::DataPrefix;
 
-		intptr_t offset = 0;
+		size_t offset = 0;
 		auto peek = [&]() { return data[offset]; };
 
 		bool isBase64 = false;

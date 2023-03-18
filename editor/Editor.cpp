@@ -85,6 +85,10 @@ EditorLayer::EditorLayer()
 
 	mConnection.register_type<Message>(1);
 
+	mConnection.on<Message>([](const Message& msg) {
+		Utility::Log("client", msg.a, msg.b);
+	});
+
 	auto& mgr = mEditorScene.manager();
 
 	UI::create_context();
@@ -216,7 +220,6 @@ EditorLayer::EditorLayer()
 	}
 
 	mLastUpdate = (float)mTimer.elapsed();
-
 }
 
 Slick::Editor::EditorLayer::~EditorLayer() {
@@ -255,7 +258,7 @@ void EditorLayer::fixed_update(float dt) {
 }
 
 void EditorLayer::render(App::Application& app, i32 w, i32 h) {
-	float current = mTimer.elapsed();
+	float current = (float)mTimer.elapsed();
 	float dt = current - mLastRender;
 	mLastRender = current;
 	mFrameDelta = dt;
@@ -363,7 +366,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 		enable_attribute(3, rc.uvBuffer, rc.uvFormat, rc.uvOffset);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indexBuffer);
-		glDrawElements(GL_TRIANGLES, (u32)rc.indexCount, format_type(rc.indexFormat), (const void*)rc.indexOffset);
+		glDrawElements(GL_TRIANGLES, (u32)rc.indexCount, format_type(rc.indexFormat), (const void*)(intptr_t)rc.indexOffset);
 	});
 
 	UI::frame([&]() {
@@ -446,14 +449,16 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			});
 		});
 		UI::window("Log", [&]() {
+			for (auto& msg : mLogHistory) {
+				UI::button(msg);
+			}
+		});
+		UI::window("Performance", [&]() {
 			UI::button("DT:  " + format(mFrameDelta));
 			static float t = 0.f;
 			UI::button("FPS: " + format(1.f / mFrameDelta));
 			if(UI::button("FPS: " + format(t))) {
 				t = 1.f / mFrameDelta;
-			}
-			for (auto& msg : mLogHistory) {
-				UI::button(msg);
 			}
 		});
 	});
@@ -490,8 +495,9 @@ ServerLayer::ServerLayer()
 {
 	mServer.register_type<Message>(1);
 
-	mServer.on<Message>([](const Message& m) {
-		Utility::Log("Server", m.a, m.b);
+	mServer.on<Message>([&](const Message& m, u32 conn_id) {
+		Utility::Log("Server", m.a, m.b, "From", conn_id);
+		mServer.send<Message>({ .a = m.a + 1, .b = m.b + 1 }, conn_id);
 	});
 }
 

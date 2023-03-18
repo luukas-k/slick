@@ -99,18 +99,28 @@ namespace Slick::Net {
 				u32 tid;
 				T v;
 			};
-			mMessageHandlers[tid] = [cb](const char* data, size_t len) {
+			mMessageHandlers[tid] = [cb](const char* data, size_t len, u32 conn_id) {
 				Message* msg = (Message*)data;
-				cb(msg->v);
+				cb(msg->v, conn_id);
 			};
 		}
 		// Send message of type T
 		template<typename T>
 		void send(const T& v, u32 conn_id = 0) {
-
+			struct Message {
+				u32 tid;
+				T v;
+			} msg{
+				.tid = mTypeIds.at(type_id<T>()),
+				.v = v
+			};
+			send_data((const char*)&msg, sizeof(Message), conn_id);
 		}
 
 		inline bool is_active() const { return mActive; }
+
+	private:
+		void send_data(const char* data, size_t len, u32 conn_id);
 
 	private:
 		bool mActive;
@@ -118,7 +128,15 @@ namespace Slick::Net {
 		std::jthread mServerThread;
 		std::unordered_map<u32, u32> mTypeIds;
 		std::unordered_map<u32, u32> mTypeSizes;
-		std::unordered_map<u32, std::function<void(const char*, size_t)>> mMessageHandlers;
+		std::unordered_map<u32, std::function<void(const char*, size_t, u32)>> mMessageHandlers;
+		struct Address {
+			u32 ip;
+			u16 port;
+
+			u32 conn_id;
+		};
+		std::vector<Address> mClients;
+		u32 mMaxConnectionId;
 	};
 
 }
