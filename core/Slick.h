@@ -4,6 +4,8 @@
 
 #include "utility/Logger.h"
 #include "utility/Timer.h"
+#include "utility/UUID.h"
+#include "utility/FileWatcher.h"
 
 #include "ecs/Manager.h"
 
@@ -23,5 +25,6 @@
 #include "components/Transform.h"
 #include "components/Renderable.h"
 #include "components/Light.h"
+#include "components/UUIDComponent.h"
 
 #include "network/Networking.h"

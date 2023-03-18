@@ -208,8 +208,11 @@ EditorLayer::EditorLayer()
 			rc.indexCount = indexAcc.count;
 
 			u32 ent = mgr.create();
+			UUIDComponent* uuidc = mgr.add_component<UUIDComponent>(ent);
+			uuidc->uuid = Utility::generate_uuid();
 			TransformComponent* tf = mgr.add_component<TransformComponent>(ent);
 			tf->position = { 0.f, 0.f, 0.f };
+			tf->rotation = { 0.f, 0.f, 0.f };
 			RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
 			rcc->mesh = (u32)mRenderCommands.size();
 			rcc->material = (u32)mMaterials.size();
@@ -305,7 +308,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 
 		auto& rc = mRenderCommands[rrc->mesh];
 		auto& mat = mMaterials[rrc->material];
-
+		
 		Math::fMat4 model = Math::translation(tc->position) * Math::scale({ 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f });
 		mProgram.set_uniform_m4("sys_model", model);
 
@@ -381,6 +384,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 					u32 ent = mgr.create();
 					TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
 					tc->position = mEditorScene.camera().pos();
+					tc->rotation = {0.f, 0.f, 0.f};
 					LightComponent* lc = mgr.add_component<LightComponent>(ent);
 					lc->color = { 1.f, 1.f, 1.f };
 				}
@@ -460,6 +464,11 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			UI::button("FPS: " + format(1.f / mFrameDelta));
 			if(UI::button("FPS: " + format(t))) {
 				t = 1.f / mFrameDelta;
+			}
+		});
+		UI::window("Scene", [&]() {
+			if (UI::button("Save")) {
+				mEditorScene.save_scene("scene.scene");
 			}
 		});
 	});

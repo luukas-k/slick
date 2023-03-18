@@ -13,6 +13,9 @@ namespace Slick::App {
 		Scene();
 		~Scene();
 
+		void load_scene(const std::string& name);
+		void save_scene(const std::string& name);
+
 		void update(float dt);
 
 		inline ECS::Manager& manager() { return mManager; }

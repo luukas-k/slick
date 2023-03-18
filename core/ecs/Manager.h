@@ -6,7 +6,7 @@
 
 namespace Slick::ECS {
 
-	constexpr const u32 MAX_COMPONENT_SIZE = 16;
+	constexpr const u32 MAX_COMPONENT_SIZE = 32;
 	
 	class Manager {
 	public:
@@ -18,6 +18,7 @@ namespace Slick::ECS {
 
 		template<typename T>
 		T* add_component(u32 eid) {
+			static_assert(sizeof(T) <= MAX_COMPONENT_SIZE);
 			Utility::Assert(mEntities.contains(eid));
 			mEntities[eid].components[type_id<T>()] = {};
 			return get_component<T>(eid);
