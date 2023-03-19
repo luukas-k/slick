@@ -23,11 +23,11 @@
 #include "math/Mat.h"
 #include "math/Vec.h"
 
-#include "ecs/components/Transform.h"
-#include "ecs/components/Renderable.h"
-#include "ecs/components/Light.h"
-#include "ecs/components/UUIDComponent.h"
+#include "components/Transform.h"
+#include "components/Renderable.h"
+#include "components/Light.h"
+#include "components/UUIDComponent.h"
 
-#include "ecs/systems/Renderer.h"
+#include "graphics/RenderSystem.h"
 
 #include "network/Networking.h"

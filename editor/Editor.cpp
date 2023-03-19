@@ -13,7 +13,6 @@ struct Message {
 
 EditorLayer::EditorLayer()
 	:
-	
 	mActiveEntity(0), mFrameDelta(0.f), mLastRender(0.f),
 	mRenderer(mEditorScene.camera(), mResources)
 {

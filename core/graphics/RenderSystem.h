@@ -6,9 +6,9 @@
 #include "app/ResourceManager.h"
 #include "ecs/Manager.h"
 #include "graphics/Shader.h"
-#include "ecs/components/Transform.h"
-#include "ecs/components/Renderable.h"
-#include "ecs/components/Light.h"
+#include "components/Transform.h"
+#include "components/Renderable.h"
+#include "components/Light.h"
 
 namespace Slick::Gfx {
 
