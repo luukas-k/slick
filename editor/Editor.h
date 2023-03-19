@@ -14,24 +14,32 @@ namespace Slick::Editor {
 		UInt16,
 	};
 
-	struct RenderCommand {
-		i32 posBuffer, posOffset;
-		Format posFormat;
-
-		i32 normalBuffer, normalOffset;
-		Format normalFormat;
-
-		i32 tangentBuffer, tangentOffset;
-		Format tangentFormat;
-
-		i32 uvBuffer, uvOffset;
-		Format uvFormat;
-
-		i32 indexBuffer, indexOffset, indexCount;
-		Format indexFormat;
+	struct BufferReference {
+		u32 buffer, offset;
+		Format fmt;
 	};
 
-	struct PBRMaterial {
+	struct Mesh {
+		/*i32 posBuffer, posOffset;
+		Format posFormat;*/
+		BufferReference position;
+		
+		BufferReference normal;
+		bool hasNormals;
+
+		BufferReference tangent;
+		bool hasTangents;
+
+		BufferReference uvs;
+		bool hasUvs;
+
+		BufferReference indices;
+		bool hasIndices;
+
+		u32 drawCount;
+	};
+
+	struct Material {
 		Math::fVec3 baseColor;
 		i32 baseColorTexture;
 
@@ -61,8 +69,8 @@ namespace Slick::Editor {
 		float mLastUpdate, mLastRender;
 		float mFrameDelta;
 		u32 vao{};
-		std::vector<RenderCommand> mRenderCommands;
-		std::vector<PBRMaterial> mMaterials;
+		std::vector<Mesh> mMeshes;
+		std::vector<Material> mMaterials;
 		Gfx::Shader mProgram;
 		Net::Connection mConnection;
 		u32 mActiveEntity;

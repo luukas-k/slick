@@ -22,6 +22,7 @@ namespace Slick::UI {
 	void end_frame();
 
 	bool button(const std::string& label);
+	void label(const std::string& label);
 	void slider(const std::string& label, float min, float max, float& v);
 
 	bool begin_tree(const std::string& label);

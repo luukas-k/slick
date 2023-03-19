@@ -10,11 +10,11 @@ using namespace Slick::Editor;
 
 u32 format_type(Format f) {
 	switch (f) {
-		case Format::Float4: return GL_FLOAT;
-		case Format::Float3: return GL_FLOAT;
-		case Format::Float2: return GL_FLOAT;
-		case Format::Float1: return GL_FLOAT;
-		case Format::UInt16: return GL_UNSIGNED_SHORT;
+	case Format::Float4: return GL_FLOAT;
+	case Format::Float3: return GL_FLOAT;
+	case Format::Float2: return GL_FLOAT;
+	case Format::Float1: return GL_FLOAT;
+	case Format::UInt16: return GL_UNSIGNED_SHORT;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -22,11 +22,11 @@ u32 format_type(Format f) {
 
 u32 format_count(Format f) {
 	switch (f) {
-		case Format::Float4: return 4;
-		case Format::Float3: return 3;
-		case Format::Float2: return 2;
-		case Format::Float1: return 1;
-		case Format::UInt16: return 1;
+	case Format::Float4: return 4;
+	case Format::Float3: return 3;
+	case Format::Float2: return 2;
+	case Format::Float1: return 1;
+	case Format::UInt16: return 1;
 	}
 	Utility::Assert(false);
 	return 0;
@@ -135,90 +135,96 @@ EditorLayer::EditorLayer()
 
 	for (auto& mesh : gltf.meshes) {
 		for (auto& prim : mesh.primitives) {
-			RenderCommand rc{};
-
 			auto& mat = gltf.materials[prim.material];
 
-			PBRMaterial material{
-				.baseColor = mat.base_color,
-				.baseColorTexture = -1,
-				.metallic = mat.metallic,
-				.roughness = mat.roughness,
-				.metallicRoughnessTexture = -1,
-				.normalTexture = -1,
+			auto get_material = [&]() {
+				Material material{
+					.baseColor = mat.base_color,
+					.baseColorTexture = -1,
+					.metallic = mat.metallic,
+					.roughness = mat.roughness,
+					.metallicRoughnessTexture = -1,
+					.normalTexture = -1,
+				};
+
+				auto get_texture = [&](i32 texture) -> i32 {
+					if (texture != -1) {
+						auto& tex = gltf.textures[texture];
+						u32 texid = texture_ids[tex.source];
+						return texid;
+					}
+					return -1;
+				};
+
+				material.baseColorTexture = get_texture(mat.base_color_texture);
+				material.metallicRoughnessTexture = get_texture(mat.metallic_roughness_texture);
+				material.normalTexture = get_texture(mat.normal_texture);
+
+				mMaterials.push_back(material);
+
+				return mMaterials.size() - 1;
 			};
 
-			if (mat.base_color_texture != -1) {
-				auto& tex = gltf.textures[mat.base_color_texture];
-				u32 texid = texture_ids[tex.source];
-				material.baseColorTexture = texid;
-			}
-			if (mat.metallic_roughness_texture != -1) {
-				auto& tex = gltf.textures[mat.metallic_roughness_texture];
-				u32 texid = texture_ids[tex.source];
-				material.metallicRoughnessTexture = texid;
-			}
-			if (mat.normal_texture != -1) {
-				auto& tex = gltf.textures[mat.normal_texture];
-				u32 texid = texture_ids[tex.source];
-				material.normalTexture = texid;
-			}
+			auto get_mesh = [&]() {
+				Mesh rc{};
+				auto get_buffer = [&](i32 attribute_accessor) -> std::tuple<BufferReference, bool, u32> {
+					if (attribute_accessor < 0)
+						return { {}, false, 0 };
 
-			auto& posAcc = gltf.accessors[prim.attribute_position];
-			auto& posBufView = gltf.buffer_views[posAcc.buffer_view];
+					auto& accessor = gltf.accessors[attribute_accessor];
+					auto& bufferView = gltf.buffer_views[accessor.buffer_view];
 
-			rc.posBuffer = buffer_ids[posBufView.buffer];
-			rc.posOffset = posBufView.offset;
-			rc.posFormat = format_from_ctype_and_type(posAcc.component_type, posAcc.type);
+					return {
+						BufferReference{
+							buffer_ids[bufferView.buffer],
+							bufferView.offset,
+							format_from_ctype_and_type(accessor.component_type, accessor.type)
+						},
+						true,
+						accessor.count
+					};
+				};
 
-			auto& normAcc = gltf.accessors[prim.attribute_normal];
-			auto& normBufView = gltf.buffer_views[normAcc.buffer_view];
+				auto [pBuf, pOk, pCount] = get_buffer(prim.attribute_position);
+				rc.position = pBuf;
 
-			rc.normalBuffer = buffer_ids[normBufView.buffer];
-			rc.normalOffset = normBufView.offset;
-			rc.normalFormat = format_from_ctype_and_type(normAcc.component_type, normAcc.type);
+				auto [nBuf, nOk, nCount] = get_buffer(prim.attribute_normal);
+				rc.normal = nBuf;
+				rc.hasNormals = nOk;
 
-			if (prim.attribute_tangent != -1) {
-				auto& tangAcc = gltf.accessors[prim.attribute_tangent];
-				auto& tangBufView = gltf.buffer_views[tangAcc.buffer_view];
+				auto [tBuf, tOk, tCount] = get_buffer(prim.attribute_tangent);
+				rc.tangent = tBuf;
+				rc.hasTangents = tOk;
 
-				rc.tangentBuffer = buffer_ids[tangBufView.buffer];
-				rc.tangentOffset = tangBufView.offset;
-				rc.tangentFormat = format_from_ctype_and_type(tangAcc.component_type, tangAcc.type);
-			}
-			else {
-				rc.tangentBuffer = -1;
-				rc.tangentOffset = -1;
-				rc.tangentFormat = Format::Unknown;
-			}
+				auto [uBuf, uOk, uCount] = get_buffer(prim.attribute_texcoord);
+				rc.uvs = uBuf;
+				rc.hasUvs = uOk;
 
-			auto& uvAcc = gltf.accessors[prim.attribute_texcoord];
-			auto& uvBufView = gltf.buffer_views[uvAcc.buffer_view];
+				auto [iBuf, iOk, iCount] = get_buffer(prim.indices);
+				rc.indices = iBuf;
+				rc.hasIndices = iOk;
+				rc.drawCount = iCount;
 
-			rc.uvBuffer = buffer_ids[uvBufView.buffer];
-			rc.uvOffset = uvBufView.offset;
-			rc.uvFormat = format_from_ctype_and_type(uvAcc.component_type, uvAcc.type);
+				mMeshes.push_back(rc);
 
-			auto& indexAcc = gltf.accessors[prim.indices];
-			auto& indexBufView = gltf.buffer_views[indexAcc.buffer_view];
+				return mMeshes.size() - 1;
+			};
 
-			rc.indexBuffer = buffer_ids[indexBufView.buffer];
-			rc.indexOffset = indexBufView.offset;
-			rc.indexFormat = format_from_ctype_and_type(indexAcc.component_type, indexAcc.type);
-			rc.indexCount = indexAcc.count;
+			auto material = get_material();
+			auto mesh = get_mesh();
 
 			u32 ent = mgr.create();
+
 			UUIDComponent* uuidc = mgr.add_component<UUIDComponent>(ent);
 			uuidc->uuid = Utility::generate_uuid();
+
 			TransformComponent* tf = mgr.add_component<TransformComponent>(ent);
 			tf->position = { 0.f, 0.f, 0.f };
 			tf->rotation = { 0.f, 0.f, 0.f };
-			RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
-			rcc->mesh = (u32)mRenderCommands.size();
-			rcc->material = (u32)mMaterials.size();
 
-			mRenderCommands.push_back(rc);
-			mMaterials.push_back(material);
+			RenderableComponent* rcc = mgr.add_component<RenderableComponent>(ent);
+			rcc->mesh = mesh;
+			rcc->material = material;
 		}
 	}
 
@@ -303,12 +309,12 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 	});
 
 	mEditorScene.manager().view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
-		if (rrc->mesh >= mRenderCommands.size())
+		if (rrc->mesh >= mMeshes.size())
 			return;
 
-		auto& rc = mRenderCommands[rrc->mesh];
+		auto& rc = mMeshes[rrc->mesh];
 		auto& mat = mMaterials[rrc->material];
-		
+
 		Math::fMat4 model = Math::translation(tc->position) * Math::scale({ 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f });
 		mProgram.set_uniform_m4("sys_model", model);
 
@@ -327,7 +333,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			mProgram.set_uniform_i1("mat_has_base_color_texture", 1);
 		}
 
-		if (mat.baseColorTexture == -1) {
+		if (mat.metallicRoughnessTexture == -1) {
 			// No texture
 			mProgram.set_uniform_i1("mat_has_metallic_roughness", 0);
 			mProgram.set_uniform_f1("mat_metallic", mat.metallic);
@@ -355,21 +361,22 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 			mProgram.set_uniform_i1("mat_has_normal", 1);
 		}
 
-		auto enable_attribute = [](u32 index, i32 buffer, Format fmt, u32 offset) {
-			if (buffer == -1) return;
-
-			glBindBuffer(GL_ARRAY_BUFFER, buffer);
+		auto enable_attribute = [](u32 index, BufferReference buf) {
+			glBindBuffer(GL_ARRAY_BUFFER, buf.buffer);
 			glEnableVertexAttribArray(index);
-			glVertexAttribPointer(index, format_count(fmt), format_type(fmt), false, 0, (const void*)offset);
+			glVertexAttribPointer(index, format_count(buf.fmt), format_type(buf.fmt), false, 0, (const void*)buf.offset);
 		};
 
-		enable_attribute(0, rc.posBuffer, rc.posFormat, rc.posOffset);
-		enable_attribute(1, rc.normalBuffer, rc.normalFormat, rc.normalOffset);
-		enable_attribute(2, rc.tangentBuffer, rc.tangentFormat, rc.tangentOffset);
-		enable_attribute(3, rc.uvBuffer, rc.uvFormat, rc.uvOffset);
+		enable_attribute(0, rc.position);
+		if (rc.hasNormals)
+			enable_attribute(1, rc.normal);
+		if (rc.hasTangents)
+			enable_attribute(2, rc.tangent);
+		if (rc.hasUvs)
+			enable_attribute(3, rc.uvs);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indexBuffer);
-		glDrawElements(GL_TRIANGLES, (u32)rc.indexCount, format_type(rc.indexFormat), (const void*)(intptr_t)rc.indexOffset);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indices.buffer);
+		glDrawElements(GL_TRIANGLES, (u32)rc.drawCount, format_type(rc.indices.fmt), (const void*)(intptr_t)rc.indices.offset);
 	});
 
 	UI::frame([&]() {
@@ -384,7 +391,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 					u32 ent = mgr.create();
 					TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
 					tc->position = mEditorScene.camera().pos();
-					tc->rotation = {0.f, 0.f, 0.f};
+					tc->rotation = { 0.f, 0.f, 0.f };
 					LightComponent* lc = mgr.add_component<LightComponent>(ent);
 					lc->color = { 1.f, 1.f, 1.f };
 				}
@@ -402,10 +409,10 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 		UI::window("Entity panel", [&]() {
 			UI::container("Entity", [&]() {
 				if (mActiveEntity == 0) {
-					UI::button("No active ent");
+					UI::label("No active ent");
 					return;
 				}
-				
+
 				if (UI::button("Delete")) {
 					mEditorScene.manager().destroy(mActiveEntity);
 					mActiveEntity = 0;
@@ -414,7 +421,9 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 				auto tf = mEditorScene.manager().get_component<TransformComponent>(mActiveEntity);
 				if (tf) {
 					UI::container("Transform", [&]() {
-						UI::button(format(tf->position));
+						UI::slider("x", -1000.f, 1000.f, tf->position.x);
+						UI::slider("y", -1000.f, 1000.f, tf->position.y);
+						UI::slider("z", -1000.f, 1000.f, tf->position.z);
 					});
 				}
 			});
@@ -432,7 +441,7 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 						mConnection.send<Message>(Message{
 							.a = 5,
 							.b = 16
-						});
+												  });
 					}
 					if (UI::button("Disconnect")) {
 						mConnection.disconnect();
@@ -455,14 +464,14 @@ void EditorLayer::render(App::Application& app, i32 w, i32 h) {
 		UI::window("Log", [&]() {
 			for (u32 i = 0; i < mLogHistory.size(); i++) {
 				auto& msg = mLogHistory[mLogHistory.size() - 1 - i];
-				UI::button(msg);
+				UI::label(msg);
 			}
 		});
 		UI::window("Performance", [&]() {
-			UI::button("DT:  " + format(mFrameDelta));
+			UI::label("DT:  " + format(mFrameDelta));
 			static float t = 0.f;
-			UI::button("FPS: " + format(1.f / mFrameDelta));
-			if(UI::button("FPS: " + format(t))) {
+			UI::label("FPS: " + format(1.f / mFrameDelta));
+			if (UI::button("FPS: " + format(t))) {
 				t = 1.f / mFrameDelta;
 			}
 		});
@@ -501,8 +510,7 @@ void EditorLayer::on_scroll(i32 x, i32 y) {
 	data->scroll_y += y;
 }
 
-ServerLayer::ServerLayer() 
-{
+ServerLayer::ServerLayer() {
 	mServer.register_type<Message>(1);
 
 	mServer.on_connect([](u32 conn_id) {
@@ -521,15 +529,13 @@ ServerLayer::~ServerLayer() {}
 
 void ServerLayer::update(App::Application& app) {
 	if (mServer.is_active()) {
+
 	}
 }
 
 void ServerLayer::render(App::Application& app, i32 w, i32 h) {}
-
 void ServerLayer::on_cursor_move(i32 w, i32 h) {}
-
 void ServerLayer::on_key(Input::Key kc, bool state) {}
-
 void ServerLayer::on_button(Input::Button kc, bool state) {}
 
 // Server
@@ -549,7 +555,7 @@ bool ServerLayer::is_active() {
 
 int main() {
 	App::Application app;
-	
+
 	app.create_layer<ServerLayer>("ServerLayer");
 	app.create_layer<EditorLayer>("EditorLayer");
 

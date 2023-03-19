@@ -17,6 +17,7 @@ namespace Slick::UI {
 		Window,
 		Container,
 		Button,
+		Label,
 		Slider,
 		TreeNode
 	};
@@ -331,7 +332,12 @@ namespace Slick::UI {
 			case ElementType::Button:
 			{
 				auto[tw, th] = s_Context->renderer.text_metrics(25.f / s_Context->data.vp.h, e.label);
-				return { 0, 0, (i32)(tw * s_Context->data.vp.w) + 10, (i32)(th * s_Context->data.vp.h) };
+				return { 0, 0, (i32)(tw * s_Context->data.vp.w) + 10 + 5, (i32)(th * s_Context->data.vp.h) };
+			}
+			case ElementType::Label:
+			{
+				auto[tw, th] = s_Context->renderer.text_metrics(25.f / s_Context->data.vp.h, e.label);
+				return { 0, 0, (i32)(tw * s_Context->data.vp.w) + 10 + 5, (i32)(th * s_Context->data.vp.h) };
 			}
 			case ElementType::Slider:
 			{
@@ -423,6 +429,12 @@ namespace Slick::UI {
 			e.vp = vp.left(w).top(h);
 			return;
 		}
+		case ElementType::Label:
+		{
+			auto [x, y, w, h] = calculate_size(e);
+			e.vp = vp.left(w).top(h);
+			return;
+		}
 		case ElementType::Slider:
 		{
 			auto [x, y, w, h] = calculate_size(e);
@@ -470,7 +482,7 @@ namespace Slick::UI {
 			);
 		};
 		auto draw_text = [&](Gfx::Viewport vp, const std::string& text) {
-			if(!get_clamp_vp().contains(vp)) return;
+			if(!get_clamp_vp().contains(vp.shrink(10, 10, 10, 10))) return;
 
 			ctx->renderer.submit_text(
 				{ (float)vp.x / ctx->data.vp.w, (float)vp.y / ctx->data.vp.h },
@@ -535,6 +547,12 @@ namespace Slick::UI {
 				Gfx::Viewport button_container = e.vp;
 				Math::fVec3 color = e.as_button.hovered ? Math::fVec3{ 1.f, 0.f, 0.f } : Math::fVec3{ 0.5f, 0.5f, 0.5f };
 				draw_vp(button_container, color, 5);
+				draw_text(button_container.offset(5,4), e.label);
+				return;
+			}
+			case ElementType::Label:
+			{
+				Gfx::Viewport button_container = e.vp;
 				draw_text(button_container.offset(5,4), e.label);
 				return;
 			}
@@ -672,6 +690,10 @@ namespace Slick::UI {
 			return true;
 		}
 		return false;
+	}
+
+	void label(const std::string& label) {
+		UIElement* elem = get_or_create(ElementType::Label, label);
 	}
 
 	void slider(const std::string& label, float min, float max, float& v) {
