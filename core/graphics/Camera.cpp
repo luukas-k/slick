@@ -6,13 +6,14 @@ namespace Slick::Gfx {
 		:
 		mFov(Math::radians(80.f)),
 		mPosition({0.f, 0.f, 0.f}),
-		mRotation({0.f, 0.f, 0.f})
+		mRotation({0.f, 0.f, 0.f}),
+		mAspectRatio(1.f)
 	{}
 
 	Camera::~Camera() {}
 
-	Math::fMat4 Camera::projection(float ar) {
-		return Math::perspective(ar, mFov, 0.01f, 1000.f);
+	Math::fMat4 Camera::projection() {
+		return Math::perspective(mAspectRatio, mFov, 0.01f, 1000.f);
 	}
 
 	Math::fMat4 Camera::view() {

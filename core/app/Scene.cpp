@@ -9,8 +9,10 @@
 
 namespace Slick::App {
 
-	Scene::Scene() {
-	}
+	Scene::Scene() 
+		:
+		mManager(1.f / 60.f)
+	{}
 
 	Scene::~Scene() {
 	}
@@ -91,7 +93,7 @@ namespace Slick::App {
 	}
 
 	void Scene::update(float dt) {
-		mManager.update_systems();
+		mManager.update_systems(dt);
 	}
 
 }

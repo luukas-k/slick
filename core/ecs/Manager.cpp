@@ -7,9 +7,12 @@ Slick::u32 Slick::gen_id() {
 
 namespace Slick::ECS {
 	
-	Manager::Manager() 
+	Manager::Manager(float timestep) 
 		:
-		mCount(1)
+		mCount(1),
+		mCurrentTime(0.f),
+		mLastUpdate(0.f),
+		mInterval(timestep)
 	{}
 
 	Manager::~Manager() {}

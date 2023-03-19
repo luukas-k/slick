@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace Slick::Editor {
+namespace Slick::Loader {
 
 	using namespace nlohmann;
 

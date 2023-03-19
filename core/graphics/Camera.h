@@ -12,7 +12,9 @@ public:
 	Camera();
 	~Camera();
 
-	Math::fMat4 projection(float ar);
+	inline void set_aspect_ratio(float ar){ mAspectRatio = ar; }
+	
+	Math::fMat4 projection();
 	Math::fMat4 view();
 
 	Camera& translate_global(Math::fVec3 tx);
@@ -24,7 +26,7 @@ public:
 
 	inline Math::fVec3& pos() { return mPosition; }
 private:
-	float mFov;
+	float mFov, mAspectRatio;
 	Math::fVec3 mPosition, mRotation;
 };
 

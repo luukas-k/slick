@@ -10,7 +10,7 @@ namespace Slick::ECS {
 	
 	class Manager {
 	public:
-		Manager();
+		Manager(float timestep);
 		~Manager();
 
 		u32 create();
@@ -53,19 +53,41 @@ namespace Slick::ECS {
 		inline u32 entity_count() const { return (u32)mEntities.size(); }
 
 		template<typename...T, typename System>
-		void register_system(System& system) {
+		void register_system_fixed(System& system) {
 			mSystems.push_back(SystemData{
 				.data = &system,
-				.on_update = [](void* ptr, Manager& mgr){ ((System*)ptr)->update(mgr); }
+				.fixed_update = true,
+				.on_update = [](void* ptr, Manager& mgr, float dt){ ((System*)ptr)->fixed_update(mgr, dt); }
 			});
 		}
 
-		inline void update_systems() {
+		template<typename...T, typename System>
+		void register_system_dynamic(System& system) {
+			mSystems.push_back(SystemData{
+				.data = &system,
+				.fixed_update = false,
+				.on_update = [](void* ptr, Manager& mgr, float dt){ ((System*)ptr)->update(mgr, dt); }
+			});
+		}
+
+		inline void update_systems(float dt) {
+			mCurrentTime += dt;
+			
+			while (mLastUpdate + mInterval < mCurrentTime) {
+				mLastUpdate += mInterval;
+				for (auto& sys : mSystems) {
+					if(sys.fixed_update)
+						sys.on_update(sys.data, *this, mInterval);
+				}
+			}
+
 			for (auto& sys : mSystems) {
-				sys.on_update(sys.data, *this);
+				if(!sys.fixed_update)
+					sys.on_update(sys.data, *this, dt);
 			}
 		}
 	private:
+		float mLastUpdate, mCurrentTime, mInterval;
 		u32 mCount;
 		struct Component {
 			u8 data[MAX_COMPONENT_SIZE];
@@ -76,7 +98,8 @@ namespace Slick::ECS {
 		std::unordered_map<u32, Components> mEntities;
 		struct SystemData {
 			void* data;
-			void(*on_update)(void*, Manager&);
+			bool fixed_update;
+			void(*on_update)(void*, Manager&, float);
 		};
 		std::vector<SystemData> mSystems;
 

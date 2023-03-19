@@ -2,7 +2,7 @@
 
 #include "Slick.h"
 
-namespace Slick::Editor {
+namespace Slick::Loader {
 
 	struct GLTFPrimitive {
 		u32 material;

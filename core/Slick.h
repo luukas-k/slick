@@ -11,6 +11,7 @@
 
 #include "app/Application.h"
 #include "app/Scene.h"
+#include "app/ResourceManager.h"
 
 #include "graphics/Surface.h"
 #include "graphics/Camera.h"
@@ -22,9 +23,11 @@
 #include "math/Mat.h"
 #include "math/Vec.h"
 
-#include "components/Transform.h"
-#include "components/Renderable.h"
-#include "components/Light.h"
-#include "components/UUIDComponent.h"
+#include "ecs/components/Transform.h"
+#include "ecs/components/Renderable.h"
+#include "ecs/components/Light.h"
+#include "ecs/components/UUIDComponent.h"
+
+#include "ecs/systems/Renderer.h"
 
 #include "network/Networking.h"

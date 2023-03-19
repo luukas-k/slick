@@ -39,9 +39,6 @@ namespace Slick::App{
 			for (auto& ld : mLayers) {
 				ld.on_update(ld.data, this);
 			}
-			for (auto& ld : mLayers) {
-				ld.on_render(ld.data, this, mSurface.width(), mSurface.height());
-			}
 			mSurface.present();
 		}
 	}
