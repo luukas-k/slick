@@ -52,21 +52,19 @@ namespace Slick::ECS {
 
 		inline u32 entity_count() const { return (u32)mEntities.size(); }
 
-		template<typename...T, typename System>
-		void register_system_fixed(System& system) {
+		template<typename...T, typename SystemFN>
+		void register_system_fixed(SystemFN&& system) {
 			mSystems.push_back(SystemData{
-				.data = &system,
 				.fixed_update = true,
-				.on_update = [](void* ptr, Manager& mgr, float dt){ ((System*)ptr)->fixed_update(mgr, dt); }
+				.update = system
 			});
 		}
 
-		template<typename...T, typename System>
-		void register_system_dynamic(System& system) {
+		template<typename...T, typename SystemFN>
+		void register_system_dynamic(SystemFN&& system) {
 			mSystems.push_back(SystemData{
-				.data = &system,
 				.fixed_update = false,
-				.on_update = [](void* ptr, Manager& mgr, float dt){ ((System*)ptr)->update(mgr, dt); }
+				.update = system
 			});
 		}
 
@@ -77,13 +75,13 @@ namespace Slick::ECS {
 				mLastUpdate += mInterval;
 				for (auto& sys : mSystems) {
 					if(sys.fixed_update)
-						sys.on_update(sys.data, *this, mInterval);
+						sys.update(*this, mInterval);
 				}
 			}
 
 			for (auto& sys : mSystems) {
 				if(!sys.fixed_update)
-					sys.on_update(sys.data, *this, dt);
+					sys.update(*this, dt);
 			}
 		}
 	private:
@@ -97,9 +95,8 @@ namespace Slick::ECS {
 		};
 		std::unordered_map<u32, Components> mEntities;
 		struct SystemData {
-			void* data;
 			bool fixed_update;
-			void(*on_update)(void*, Manager&, float);
+			std::function<void(Manager&, float)> update;
 		};
 		std::vector<SystemData> mSystems;
 

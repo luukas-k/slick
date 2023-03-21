@@ -29,8 +29,10 @@ namespace Slick::Gfx {
 		void begin();
 		void end();
 		
+		void submit_quad(Math::fVec2 pos, Math::fVec2 size, float angle, Math::fVec3 color, float border_radius);
 		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius);
 		void submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec2 uv0, Math::fVec2 uv1, u32 texture, float border_radius, bool is_text = false);
+		
 		void submit_text(Math::fVec2 pos, float scale, const std::string& text);
 		Math::fVec2 text_metrics(float scale, const std::string& text);
 

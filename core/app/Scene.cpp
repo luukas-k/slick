@@ -9,8 +9,9 @@
 
 namespace Slick::App {
 
-	Scene::Scene() 
+	Scene::Scene(ResourceManager& resources) 
 		:
+		mResources(resources),
 		mManager(1.f / 60.f)
 	{}
 

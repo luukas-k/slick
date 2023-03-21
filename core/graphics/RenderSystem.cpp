@@ -4,15 +4,11 @@
 
 namespace Slick::Gfx {
 
-	RenderSystem::RenderSystem(Camera& cam, App::ResourceManager& resources)
+	RenderSystem::RenderSystem()
 		:
-		mCamera(cam),
-		mResources(resources),
 		mProgram("shader/vs.glsl", "shader/fs.glsl") {
-
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
-
 	}
 
 	RenderSystem::~RenderSystem() {}
@@ -41,7 +37,7 @@ namespace Slick::Gfx {
 		return 0;
 	}
 
-	void RenderSystem::update(ECS::Manager& mgr, float dt) {
+	void RenderSystem::update(App::Scene& scene, ECS::Manager& mgr, float dt) {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -50,7 +46,9 @@ namespace Slick::Gfx {
 
 		glEnable(GL_CULL_FACE);
 
-		auto& cam = mCamera;
+		auto& resources = scene.resources();
+
+		auto& cam = scene.camera();
 		Math::fMat4 proj = cam.projection();
 		Math::fMat4 view = cam.view();
 
@@ -72,8 +70,8 @@ namespace Slick::Gfx {
 		});
 
 		mgr.view<TransformComponent, RenderableComponent>([&](u32 ent, TransformComponent* tc, RenderableComponent* rrc) {
-			const auto& rc = mResources.get_mesh_by_id(rrc->mesh);
-			const auto& mat = mResources.get_material_by_id(rrc->material);
+			const auto& rc = resources.get_mesh_by_id(rrc->mesh);
+			const auto& mat = resources.get_material_by_id(rrc->material);
 
 			Math::fMat4 model = Math::translation(tc->position) * Math::scale({ 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f });
 			mProgram.set_uniform_m4("sys_model", model);

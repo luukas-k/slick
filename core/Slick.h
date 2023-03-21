@@ -27,7 +27,10 @@
 #include "components/Renderable.h"
 #include "components/Light.h"
 #include "components/UUIDComponent.h"
+#include "components/RigidBody.h"
 
 #include "graphics/RenderSystem.h"
 
 #include "network/Networking.h"
+
+#include "physics/PhysicsSystem.h"

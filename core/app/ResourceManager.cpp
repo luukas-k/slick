@@ -147,7 +147,6 @@ namespace Slick::App {
 				auto mesh = get_mesh();
 
 				result.push_back({mesh, material});
-				
 			}
 		}
 

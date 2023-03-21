@@ -14,9 +14,10 @@ struct Message {
 EditorLayer::EditorLayer()
 	:
 	mActiveEntity(0), mFrameDelta(0.f), mLastRender(0.f),
-	mRenderer(mEditorScene.camera(), mResources)
+	mEditorScene(mResources)
 {
-	mEditorScene.manager().register_system_dynamic(mRenderer);
+	mEditorScene.register_system_dynamic(mRenderer);
+	mEditorScene.register_system_fixed(mPhysics);
 
 	Utility::register_log_handler([&](const std::string& msg) {
 		mLogHistory.push_back("[" + format(mTimer.elapsed()) + "]: " + msg);
@@ -31,28 +32,42 @@ EditorLayer::EditorLayer()
 	UI::create_context();
 
 	auto& cam = mEditorScene.camera();
-	cam.set_position({ 0.f, 0.f, 3.f });
+	cam.set_position({ 0.f, 0.f, .5f });
 
-	// auto gun_gltf = Editor::load_gltf("model/gun/gun.gltf");
-
-	auto load_mesh_to_scene = [&](const std::string& fname) {
-		auto& mgr = mEditorScene.manager();
+	auto load_mesh_to_scene = [&](const std::string& fname, Math::fVec3 pos, bool phys) {
 		auto meshes = mResources.load_mesh(fname);
 		for (auto& [mesh, mat] : meshes) {
-			u32 ent = mgr.create();
-			TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
-			tc->position = { 0.f, 0.f, 0.f };
-			tc->rotation = { 0.f, 0.f, 0.f };
-			RenderableComponent* rc = mgr.add_component<RenderableComponent>(ent);
-			rc->mesh = mesh;
-			rc->material = mat;
+			if (!phys) {
+				auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>();
+				tc->position = pos;
+				tc->rotation = { 0.f, 0.f, 0.f };
+				rc->mesh = mesh;
+				rc->material = mat;
+			}
+			else {
+				auto[ent, tc, rc, rb, sc] = mEditorScene.create_entity<TransformComponent, RenderableComponent, RigidBody, SphereCollider>();
+				tc->position = pos;
+				tc->rotation = { 0.f, 0.f, 0.f };
+				rc->mesh = mesh;
+				rc->material = mat;
+				sc->radius = 1.f;
+			}
 		}
 	};
 
 	// fname "model/bollard.gltf"
 
-	load_mesh_to_scene("model/bollard.gltf");
 	// load_mesh_to_scene("model/sponza.gltf");
+	for (u32 i = 0; i < 100; i++) {
+		Math::fVec3 off{
+			(float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX,
+			(float)rand() / RAND_MAX
+		};
+		off = off * 2.f - 1.f;
+		off = off * 0.1f;
+		load_mesh_to_scene("model/sphere.gltf", {off.x, (float)i * 5.f, off.z}, true);
+	}
 
 	mLastUpdate = (float)mTimer.elapsed();
 }
@@ -68,7 +83,7 @@ void EditorLayer::update(App::Application& app) {
 	float dt = currentTime - mLastUpdate;
 
 	mInput.update();
-
+	
 	Math::fVec3 movement{
 		mInput.key_state(Input::Key::Key_A) * -1.f + mInput.key_state(Input::Key::Key_D) * 1.f,
 		mInput.key_state(Input::Key::Key_Shift) * -1.f + mInput.key_state(Input::Key::Key_Space) * 1.f,
@@ -76,10 +91,10 @@ void EditorLayer::update(App::Application& app) {
 	};
 
 	float sensitivity = 0.01f;
-	float speed = mInput.key_state(Input::Key::Key_Ctrl) ? 20.f : 5.f;
+	float speed = mInput.key_state(Input::Key::Key_Ctrl) ? 5.f : 1.f;
 	auto& cam = mEditorScene.camera();
 	cam.translate_local(movement * speed * dt);
-
+	
 	if (mInput.button_state(Input::Button::Button_Left))
 		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * sensitivity, (float)-mInput.cursor_dx() * sensitivity, 0.f });
 
@@ -87,6 +102,7 @@ void EditorLayer::update(App::Application& app) {
 	i32 w = app.surface().width();
 	i32 h = app.surface().height();
 	data->vp = { 0, 0, w, h };
+	cam.set_aspect_ratio((float)w / h);
 
 	glViewport(0, 0, w, h);
 	glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -99,6 +115,12 @@ void EditorLayer::update(App::Application& app) {
 	UI::frame([&]() {
 		UI::window("Primary window", [&]() {
 			UI::container("Tools", [&]() {
+				if (UI::button("Reset pos")) {
+					auto& mgr = mEditorScene.manager();
+					mgr.view<TransformComponent>([](u32 e, TransformComponent* tc) {
+						tc->position = {0.f, 5.f, 0.f};
+					});
+				}
 				if (UI::button("Add light.")) {
 					Utility::Log("Create light.");
 
@@ -113,15 +135,6 @@ void EditorLayer::update(App::Application& app) {
 			});
 		});
 		UI::window("Secondary window", [&]() {
-			UI::container("Entities", [&]() {
-				mEditorScene.manager().view([&](u32 ent) {
-					if (UI::button("Entity (" + std::to_string(ent) + ")")) {
-						mActiveEntity = ent;
-					}
-				});
-			});
-		});
-		UI::window("Entity panel", [&]() {
 			UI::container("Entity", [&]() {
 				if (mActiveEntity == 0) {
 					UI::label("No active ent");
@@ -142,6 +155,13 @@ void EditorLayer::update(App::Application& app) {
 					});
 				}
 			});
+			UI::container("Entities", [&]() {
+				mEditorScene.manager().view([&](u32 ent) {
+					if (UI::button("Entity (" + std::to_string(ent) + ")")) {
+						mActiveEntity = ent;
+					}
+				});
+			});
 		});
 		UI::window("Network window", [&]() {
 			UI::container("Client", [&]() {
@@ -156,7 +176,7 @@ void EditorLayer::update(App::Application& app) {
 						mConnection.send<Message>(Message{
 							.a = 5,
 							.b = 16
-												  });
+						});
 					}
 					if (UI::button("Disconnect")) {
 						mConnection.disconnect();
@@ -180,14 +200,6 @@ void EditorLayer::update(App::Application& app) {
 			for (u32 i = 0; i < mLogHistory.size(); i++) {
 				auto& msg = mLogHistory[mLogHistory.size() - 1 - i];
 				UI::label(msg);
-			}
-		});
-		UI::window("Performance", [&]() {
-			UI::label("DT:  " + format(mFrameDelta));
-			static float t = 0.f;
-			UI::label("FPS: " + format(1.f / mFrameDelta));
-			if (UI::button("FPS: " + format(t))) {
-				t = 1.f / mFrameDelta;
 			}
 		});
 		UI::window("Scene", [&]() {
@@ -225,7 +237,10 @@ void EditorLayer::on_scroll(i32 x, i32 y) {
 	data->scroll_y += y;
 }
 
-ServerLayer::ServerLayer() {
+ServerLayer::ServerLayer() 
+	:
+	mScene(mResources)
+{
 	mServer.register_type<Message>(1);
 
 	mServer.on_connect([](u32 conn_id) {

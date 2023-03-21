@@ -16,6 +16,7 @@ namespace Slick::Editor {
 		void on_cursor_move(i32 x, i32 y);
 		void on_scroll(i32, i32);
 	private:
+		App::ResourceManager mResources;
 		App::Scene mEditorScene;
 		Input::InputManager mInput;
 		Utility::Timer mTimer;
@@ -24,8 +25,8 @@ namespace Slick::Editor {
 		Net::Connection mConnection;
 		u32 mActiveEntity;
 		std::vector<std::string> mLogHistory;
-		App::ResourceManager mResources;
 		Gfx::RenderSystem mRenderer;
+		Physics::PhysicsSystem mPhysics;
 	};
 
 	class ServerLayer {
@@ -45,6 +46,7 @@ namespace Slick::Editor {
 		void stop_server();
 		bool is_active();
 	private:
+		App::ResourceManager mResources;
 		App::Scene mScene;
 		Net::Server mServer;
 	};

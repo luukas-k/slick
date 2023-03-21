@@ -77,7 +77,7 @@ namespace Slick::Gfx {
 		// Draw
 		glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
 		if (mCurrentVertexBufferSize != mVertices.size()) {
-			mCurrentVertexBufferSize = mVertices.size();
+			mCurrentVertexBufferSize = (u32)mVertices.size();
 			glBufferData(GL_ARRAY_BUFFER, mVertices.size() * sizeof(Vertex2D), mVertices.data(), GL_STATIC_DRAW);
 		}
 		else {
@@ -114,7 +114,7 @@ namespace Slick::Gfx {
 		glEnableVertexAttribArray(6);
 		glVertexAttribPointer(6, 1, GL_FLOAT, false, sizeof(Vertex2D), (const void*)offsetof(Vertex2D, is_text));
 		
-		glDrawArrays(GL_TRIANGLES, 0, mVertexCount);
+		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)mVertexCount);
 		
 		glDeleteVertexArrays(1, &vao);
 	}
@@ -204,7 +204,44 @@ namespace Slick::Gfx {
 		return pos;
 	}
 
+	void Renderer2D::submit_quad(Math::fVec2 pos, Math::fVec2 size, float angle, Math::fVec3 color, float border_radius) {
+		auto push_vertex = [&](Vertex2D v) {
+			if (mVertexCount < mVertices.size()) {
+				mVertices[mVertexCount++] = v;
+			}
+			else {
+				mVertexCount++;
+				mVertices.push_back(v);
+			}
+		};
+
+		/*Math::fVec2 size{
+			(p1.x - p0.x) * mScreen.w,
+			(p1.y - p0.y) * mScreen.h
+		};*/
+
+		Math::fVec2 p0 = (pos - size * 0.5f) * 2.f - Math::fVec2{1.f, 1.f};
+		Math::fVec2 p1 = (pos + size * 0.5f) * 2.f - Math::fVec2{1.f, 1.f};
+
+		Math::fVec2 ssize{(float)mScreen.w, (float)mScreen.h};
+
+		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p0.x, p1.y}, .uv = {0.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+
+		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p1.x, p0.y}, .uv = {1.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size * ssize, .border_radius = border_radius, .is_text = 0.f });
+	}
+
 	void Renderer2D::submit_rect(Math::fVec2 p0, Math::fVec2 p1, Math::fVec3 color, float border_radius) {
+		Math::fVec2 qsize{
+			p1.x - p0.x,
+			p1.y - p0.y
+		};
+		submit_quad(p0 + qsize * 0.5f, qsize, 0.f, color, border_radius);
+		return;
+
 		auto push_vertex = [&](Vertex2D v) {
 			if (mVertexCount < mVertices.size()) {
 				mVertices[mVertexCount++] = v;
@@ -229,9 +266,9 @@ namespace Slick::Gfx {
 		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius, .is_text = 0.f });
 		push_vertex({ .pos = {p0.x, p1.y}, .uv = {0.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius, .is_text = 0.f });
 
-		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius });
-		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius });
-		push_vertex({ .pos = {p1.x, p0.y}, .uv = {1.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius });
+		push_vertex({ .pos = {p1.x, p1.y}, .uv = {1.f, 1.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p0.x, p0.y}, .uv = {0.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius, .is_text = 0.f });
+		push_vertex({ .pos = {p1.x, p0.y}, .uv = {1.f, 0.f}, .color = color, .texture_index = -1.f, .quad_size = size, .border_radius = border_radius, .is_text = 0.f });
 	}
 
 }

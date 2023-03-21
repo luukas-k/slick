@@ -2,6 +2,7 @@
 
 #include "Core.h"
 
+#include "app/Scene.h"
 #include "graphics/Camera.h"
 #include "app/ResourceManager.h"
 #include "ecs/Manager.h"
@@ -14,15 +15,13 @@ namespace Slick::Gfx {
 
 	class RenderSystem {
 	public:
-		RenderSystem(Gfx::Camera& cam, App::ResourceManager& resources);
+		RenderSystem();
 		~RenderSystem();
 
-		void update(ECS::Manager& mgr, float dt);
+		void update(App::Scene& scene, ECS::Manager& mgr, float dt);
 	private:
-		Gfx::Camera& mCamera;
 		u32 vao{};
 		Gfx::Shader mProgram;
-		App::ResourceManager& mResources;
 	};
 
 }
