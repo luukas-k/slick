@@ -28,7 +28,8 @@ namespace Slick::Physics {
 
 		for (auto& [tf, rb, sc] : bodies) {
 			tf->position = tf->position + rb->velocity * dt;
-
+			tf->rotation = tf->rotation * Math::axis_rotation(Math::normalize(rb->angularVelocity), Math::length(rb->angularVelocity) * dt);
+			
 			float Beta = 0.1f;
 			if (tf->position.y < 0.f) {
 				rb->velocity.y = -(Beta / dt) * tf->position.y;

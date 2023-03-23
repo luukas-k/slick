@@ -40,14 +40,16 @@ EditorLayer::EditorLayer()
 			if (!phys) {
 				auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>();
 				tc->position = pos;
-				tc->rotation = { 0.f, 0.f, 0.f };
+				tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
+				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
 				rc->mesh = mesh;
 				rc->material = mat;
 			}
 			else {
 				auto[ent, tc, rc, rb, sc] = mEditorScene.create_entity<TransformComponent, RenderableComponent, RigidBody, SphereCollider>();
 				tc->position = pos;
-				tc->rotation = { 0.f, 0.f, 0.f };
+				tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
+				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
 				rc->mesh = mesh;
 				rc->material = mat;
 				sc->radius = 1.f;
@@ -66,7 +68,7 @@ EditorLayer::EditorLayer()
 		};
 		off = off * 2.f - 1.f;
 		off = off * 0.1f;
-		load_mesh_to_scene("model/sphere.gltf", {off.x, (float)i * 5.f, off.z}, true);
+		load_mesh_to_scene("model/bollard.gltf", {off.x, (float)i * 5.f, off.z}, true);
 	}
 
 	mLastUpdate = (float)mTimer.elapsed();
@@ -128,7 +130,7 @@ void EditorLayer::update(App::Application& app) {
 					u32 ent = mgr.create();
 					TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
 					tc->position = mEditorScene.camera().pos();
-					tc->rotation = { 0.f, 0.f, 0.f };
+					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
 					LightComponent* lc = mgr.add_component<LightComponent>(ent);
 					lc->color = { 1.f, 1.f, 1.f };
 				}

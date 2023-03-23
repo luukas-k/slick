@@ -38,6 +38,7 @@ namespace Slick::App {
 		res["rot"][0] = tc->rotation.x;
 		res["rot"][1] = tc->rotation.y;
 		res["rot"][2] = tc->rotation.z;
+		res["rot"][3] = tc->rotation.w;
 		return res;
 	}
 

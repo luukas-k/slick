@@ -6,7 +6,7 @@
 
 namespace Slick::ECS {
 
-	constexpr const u32 MAX_COMPONENT_SIZE = 32;
+	constexpr const u32 MAX_COMPONENT_SIZE = 64;
 	
 	class Manager {
 	public:

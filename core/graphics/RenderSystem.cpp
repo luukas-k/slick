@@ -73,7 +73,11 @@ namespace Slick::Gfx {
 			const auto& rc = resources.get_mesh_by_id(rrc->mesh);
 			const auto& mat = resources.get_material_by_id(rrc->material);
 
-			Math::fMat4 model = Math::translation(tc->position) * Math::scale({ 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f });
+			Math::fMat4 tx = Math::translation(tc->position),
+				sc = Math::scale(tc->scale),
+				rot = Math::rotation_matrix(tc->rotation);
+
+			Math::fMat4 model = rot * tx * sc;
 			mProgram.set_uniform_m4("sys_model", model);
 
 			if (mat.baseColorTexture == -1) {
