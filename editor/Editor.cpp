@@ -34,42 +34,22 @@ EditorLayer::EditorLayer()
 	auto& cam = mEditorScene.camera();
 	cam.set_position({ 0.f, 0.f, .5f });
 
-	auto load_mesh_to_scene = [&](const std::string& fname, Math::fVec3 pos, bool phys) {
+	auto load_mesh_to_scene = [&](const std::string& fname) {
 		auto meshes = mResources.load_mesh(fname);
 		for (auto& [mesh, mat] : meshes) {
-			if (!phys) {
-				auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>();
-				tc->position = pos;
-				tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
-				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-				rc->mesh = mesh;
-				rc->material = mat;
-			}
-			else {
-				auto[ent, tc, rc, rb, sc] = mEditorScene.create_entity<TransformComponent, RenderableComponent, RigidBody, SphereCollider>();
-				tc->position = pos;
-				tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
-				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-				rc->mesh = mesh;
-				rc->material = mat;
-				sc->radius = 1.f;
-			}
+			auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>();
+			tc->position = {0.f, 0.f, 0.f};
+			tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
+			tc->rotation = { 0.f, 0.f, 0.f, 1.f };
+			rc->mesh = mesh;
+			rc->material = mat;
 		}
 	};
 
-	// fname "model/bollard.gltf"
 
-	// load_mesh_to_scene("model/sponza.gltf");
-	for (u32 i = 0; i < 100; i++) {
-		Math::fVec3 off{
-			(float)rand() / RAND_MAX,
-			(float)rand() / RAND_MAX,
-			(float)rand() / RAND_MAX
-		};
-		off = off * 2.f - 1.f;
-		off = off * 0.1f;
-		load_mesh_to_scene("model/bollard.gltf", {off.x, (float)i * 5.f, off.z}, true);
-	}
+	// load_mesh_to_scene("model/bollard.gltf");
+	// load_mesh_to_scene("model/sphere.gltf");
+	load_mesh_to_scene("model/sponza.gltf");
 
 	mLastUpdate = (float)mTimer.elapsed();
 }
@@ -117,11 +97,8 @@ void EditorLayer::update(App::Application& app) {
 	UI::frame([&]() {
 		UI::window("Primary window", [&]() {
 			UI::container("Tools", [&]() {
-				if (UI::button("Reset pos")) {
-					auto& mgr = mEditorScene.manager();
-					mgr.view<TransformComponent>([](u32 e, TransformComponent* tc) {
-						tc->position = {0.f, 5.f, 0.f};
-					});
+				if (UI::button("Reset Camera Position")) {
+					mEditorScene.camera().set_position({0.f, 5.f, 0.f});
 				}
 				if (UI::button("Add light.")) {
 					Utility::Log("Create light.");
@@ -165,7 +142,7 @@ void EditorLayer::update(App::Application& app) {
 				});
 			});
 		});
-		UI::window("Network window", [&]() {
+		/*UI::window("Network window", [&]() {
 			UI::container("Client", [&]() {
 				if (!mConnection.is_connected()) {
 					if (UI::button("Connect")) {
@@ -197,7 +174,7 @@ void EditorLayer::update(App::Application& app) {
 					}
 				}
 			});
-		});
+		});*/
 		UI::window("Log", [&]() {
 			for (u32 i = 0; i < mLogHistory.size(); i++) {
 				auto& msg = mLogHistory[mLogHistory.size() - 1 - i];
