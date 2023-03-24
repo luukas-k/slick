@@ -15,6 +15,8 @@ namespace Slick::Editor {
 		void on_button(Input::Button kc, bool state);
 		void on_cursor_move(i32 x, i32 y);
 		void on_scroll(i32, i32);
+
+		void load_to_scene(const std::string& fname, Math::fVec3 pos);
 	private:
 		App::ResourceManager mResources;
 		App::Scene mEditorScene;

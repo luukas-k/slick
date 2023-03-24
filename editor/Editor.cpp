@@ -34,29 +34,7 @@ EditorLayer::EditorLayer()
 	auto& cam = mEditorScene.camera();
 	cam.set_position({ 0.f, 0.f, .5f });
 
-	mPool.submit_command([this]() {
-		auto load_mesh_to_scene = [this](const std::string& fname) {
-			auto gltf = Loader::load_gltf(fname);
-
-			mQueue.submit_command([this, m = gltf]() {
-				auto meshes = mResources.generate_meshes_from_gltf(m);
-				
-				for (u32 i = 0; i < meshes.size(); i++) {
-					auto&[mesh, mat] = meshes[i];
-
-					auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>("Object " + format(i));
-					tc->position = {0.f, 0.f, 0.f};
-					tc->scale = { 0.008f, 0.008f, 0.008f };
-					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-					rc->mesh = mesh;
-					rc->material = mat;
-				}
-			});
-		};
-
-		load_mesh_to_scene("model/sponza.gltf");
-
-	});
+	
 }
 
 Slick::Editor::EditorLayer::~EditorLayer() {
@@ -114,7 +92,7 @@ void EditorLayer::update(App::Application& app) {
 					lc->color = { 1.f, 1.f, 1.f };
 				}
 				if (UI::button("Load")) {
-
+					load_to_scene("model/sponza.gltf", mEditorScene.camera().pos());
 				}
 			});
 		});
@@ -216,6 +194,27 @@ void EditorLayer::on_scroll(i32 x, i32 y) {
 	auto data = UI::get_ui_data();
 	data->scroll_x += x;
 	data->scroll_y += y;
+}
+
+void Slick::Editor::EditorLayer::load_to_scene(const std::string& fname, Math::fVec3 pos) {
+	mPool.submit_command([this, fn = fname, p = pos]() {
+		auto gltf = Loader::load_gltf(fn);
+
+		mQueue.submit_command([this, m = gltf, p = p]() {
+			auto meshes = mResources.generate_meshes_from_gltf(m);
+				
+			for (u32 i = 0; i < meshes.size(); i++) {
+				auto&[mesh, mat] = meshes[i];
+
+				auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>("Object " + format(i));
+				tc->position = p;
+				tc->scale = { 0.008f, 0.008f, 0.008f };
+				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
+				rc->mesh = mesh;
+				rc->material = mat;
+			}
+		});
+	});
 }
 
 ServerLayer::ServerLayer() 

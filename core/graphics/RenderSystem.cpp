@@ -77,7 +77,7 @@ namespace Slick::Gfx {
 				sc = Math::scale(tc->scale),
 				rot = Math::rotation_matrix(tc->rotation);
 
-			Math::fMat4 model = rot * tx * sc;
+			Math::fMat4 model = sc * rot * tx;
 			mProgram.set_uniform_m4("sys_model", model);
 
 			if (mat.baseColorTexture == -1) {
