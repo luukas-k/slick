@@ -10,6 +10,7 @@ namespace Slick::Utility {
 		~Timer();
 
 		double elapsed();
+		void reset();
 	private:
 		double mStart;
 	};

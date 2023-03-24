@@ -6,11 +6,15 @@ Slick::Utility::Timer::Timer()
 	:
 	mStart(0.0)
 {
-	mStart = glfwGetTime();
+	reset();
 }
 
 Slick::Utility::Timer::~Timer() {}
 
 double Slick::Utility::Timer::elapsed() {
 	return glfwGetTime() - mStart;
+}
+
+void Slick::Utility::Timer::reset() {
+	mStart = glfwGetTime();
 }
