@@ -20,8 +20,8 @@ namespace Slick::Editor {
 		App::Scene mEditorScene;
 		Input::InputManager mInput;
 		Utility::Timer mTimer;
-		float mLastUpdate, mLastRender;
-		float mFrameDelta;
+		// float mLastUpdate, mLastRender;
+		// float mFrameDelta;
 		Net::Connection mConnection;
 		u32 mActiveEntity;
 		std::vector<std::string> mLogHistory;

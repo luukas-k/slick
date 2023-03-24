@@ -13,7 +13,7 @@ struct Message {
 
 EditorLayer::EditorLayer()
 	:
-	mActiveEntity(0), mFrameDelta(0.f), mLastRender(0.f),
+	mActiveEntity(0),
 	mEditorScene(mResources)
 {
 	mEditorScene.register_system_dynamic(mRenderer);
@@ -36,22 +36,22 @@ EditorLayer::EditorLayer()
 
 	auto load_mesh_to_scene = [&](const std::string& fname) {
 		auto meshes = mResources.load_mesh(fname);
-		for (auto& [mesh, mat] : meshes) {
-			auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>();
+		
+		for (u32 i = 0; i < meshes.size(); i++) {
+			auto&[mesh, mat] = meshes[i];
+
+			auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>("Object " + format(i));
 			tc->position = {0.f, 0.f, 0.f};
-			tc->scale = { 0.00800000037997961f, 0.00800000037997961f, 0.00800000037997961f };
+			tc->scale = { 0.008f, 0.008f, 0.008f };
 			tc->rotation = { 0.f, 0.f, 0.f, 1.f };
 			rc->mesh = mesh;
 			rc->material = mat;
 		}
 	};
 
-
 	// load_mesh_to_scene("model/bollard.gltf");
 	// load_mesh_to_scene("model/sphere.gltf");
 	load_mesh_to_scene("model/sponza.gltf");
-
-	mLastUpdate = (float)mTimer.elapsed();
 }
 
 Slick::Editor::EditorLayer::~EditorLayer() {
@@ -61,8 +61,8 @@ Slick::Editor::EditorLayer::~EditorLayer() {
 }
 
 void EditorLayer::update(App::Application& app) {
-	float currentTime = (float)mTimer.elapsed();
-	float dt = currentTime - mLastUpdate;
+	float dt = (float)mTimer.elapsed();
+	mTimer.reset();
 
 	mInput.update();
 	
@@ -92,8 +92,6 @@ void EditorLayer::update(App::Application& app) {
 
 	mEditorScene.update(dt);
 
-	mLastUpdate = currentTime;
-
 	UI::frame([&]() {
 		UI::window("Primary window", [&]() {
 			UI::container("Tools", [&]() {
@@ -103,12 +101,9 @@ void EditorLayer::update(App::Application& app) {
 				if (UI::button("Add light.")) {
 					Utility::Log("Create light.");
 
-					auto& mgr = mEditorScene.manager();
-					u32 ent = mgr.create();
-					TransformComponent* tc = mgr.add_component<TransformComponent>(ent);
+					auto [ent, tc, lc] = mEditorScene.create_entity<TransformComponent, LightComponent>("Name");
 					tc->position = mEditorScene.camera().pos();
 					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-					LightComponent* lc = mgr.add_component<LightComponent>(ent);
 					lc->color = { 1.f, 1.f, 1.f };
 				}
 			});
@@ -121,11 +116,11 @@ void EditorLayer::update(App::Application& app) {
 				}
 
 				if (UI::button("Delete")) {
-					mEditorScene.manager().destroy(mActiveEntity);
+					mEditorScene.destroy_entity(mActiveEntity);
 					mActiveEntity = 0;
 				}
 
-				auto tf = mEditorScene.manager().get_component<TransformComponent>(mActiveEntity);
+				auto tf = mEditorScene.get_component<TransformComponent>(mActiveEntity);
 				if (tf) {
 					UI::container("Transform", [&]() {
 						UI::slider("x", -1000.f, 1000.f, tf->position.x);
@@ -135,8 +130,8 @@ void EditorLayer::update(App::Application& app) {
 				}
 			});
 			UI::container("Entities", [&]() {
-				mEditorScene.manager().view([&](u32 ent) {
-					if (UI::button("Entity (" + std::to_string(ent) + ")")) {
+				mEditorScene.view([&](u32 ent) {
+					if (UI::button(mEditorScene.get_name(ent))) {
 						mActiveEntity = ent;
 					}
 				});
@@ -187,9 +182,6 @@ void EditorLayer::update(App::Application& app) {
 			}
 		});
 	});
-
-	data->scroll_x = 0;
-	data->scroll_y = 0;
 }
 
 void EditorLayer::on_key(Input::Key kc, bool state) {
