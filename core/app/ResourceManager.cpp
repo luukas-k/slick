@@ -32,9 +32,7 @@ namespace Slick::App {
 
 	ResourceManager::~ResourceManager() {}
 
-	std::vector<std::pair<u32, u32>> ResourceManager::load_mesh(const std::string& fname) {
-		auto gltf = Loader::load_gltf(fname);
-
+	std::vector<std::pair<u32, u32>> ResourceManager::generate_meshes_from_gltf(const Loader::GLTFScene& gltf) {
 		std::vector<u32> buffer_ids;
 		for (auto& buffer : gltf.buffers) {
 			u32 id{};

@@ -27,6 +27,8 @@ namespace Slick::Editor {
 		std::vector<std::string> mLogHistory;
 		Gfx::RenderSystem mRenderer;
 		Physics::PhysicsSystem mPhysics;
+		Utility::ThreadPool mPool;
+		Utility::CommandQueue mQueue;
 	};
 
 	class ServerLayer {

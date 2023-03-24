@@ -34,24 +34,29 @@ EditorLayer::EditorLayer()
 	auto& cam = mEditorScene.camera();
 	cam.set_position({ 0.f, 0.f, .5f });
 
-	auto load_mesh_to_scene = [&](const std::string& fname) {
-		auto meshes = mResources.load_mesh(fname);
-		
-		for (u32 i = 0; i < meshes.size(); i++) {
-			auto&[mesh, mat] = meshes[i];
+	mPool.submit_command([this]() {
+		auto load_mesh_to_scene = [this](const std::string& fname) {
+			auto gltf = Loader::load_gltf(fname);
 
-			auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>("Object " + format(i));
-			tc->position = {0.f, 0.f, 0.f};
-			tc->scale = { 0.008f, 0.008f, 0.008f };
-			tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-			rc->mesh = mesh;
-			rc->material = mat;
-		}
-	};
+			mQueue.submit_command([this, m = gltf]() {
+				auto meshes = mResources.generate_meshes_from_gltf(m);
+				
+				for (u32 i = 0; i < meshes.size(); i++) {
+					auto&[mesh, mat] = meshes[i];
 
-	// load_mesh_to_scene("model/bollard.gltf");
-	// load_mesh_to_scene("model/sphere.gltf");
-	load_mesh_to_scene("model/sponza.gltf");
+					auto[ent, tc, rc] = mEditorScene.create_entity<TransformComponent, RenderableComponent>("Object " + format(i));
+					tc->position = {0.f, 0.f, 0.f};
+					tc->scale = { 0.008f, 0.008f, 0.008f };
+					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
+					rc->mesh = mesh;
+					rc->material = mat;
+				}
+			});
+		};
+
+		load_mesh_to_scene("model/sponza.gltf");
+
+	});
 }
 
 Slick::Editor::EditorLayer::~EditorLayer() {
@@ -63,6 +68,8 @@ Slick::Editor::EditorLayer::~EditorLayer() {
 void EditorLayer::update(App::Application& app) {
 	float dt = (float)mTimer.elapsed();
 	mTimer.reset();
+
+	mQueue.run_commands();
 
 	mInput.update();
 	
@@ -105,6 +112,9 @@ void EditorLayer::update(App::Application& app) {
 					tc->position = mEditorScene.camera().pos();
 					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
 					lc->color = { 1.f, 1.f, 1.f };
+				}
+				if (UI::button("Load")) {
+
 				}
 			});
 		});

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Slick.h"
+#include "Core.h"
+
+#include "math/Vec.h"
 
 namespace Slick::Loader {
 

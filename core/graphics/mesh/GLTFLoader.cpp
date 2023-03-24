@@ -4,6 +4,9 @@
 
 #include <string>
 
+#include "utility/Logger.h"
+#include "utility/Timer.h"
+
 namespace Slick::Loader {
 
 	using namespace nlohmann;

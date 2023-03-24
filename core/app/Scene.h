@@ -2,9 +2,9 @@
 
 #include "Core.h"
 
+#include "app/ResourceManager.h"
 #include "ecs/Manager.h"
 #include "graphics/Camera.h"
-#include "app/ResourceManager.h"
 #include "components/Name.h"
 #include "utility/Logger.h"
 

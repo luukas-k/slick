@@ -3,6 +3,7 @@
 #include "Core.h"
 
 #include "math/Vec.h"
+#include "graphics/mesh/GLTFLoader.h"
 
 namespace Slick::App {
 
@@ -56,7 +57,7 @@ namespace Slick::App {
 		ResourceManager();
 		~ResourceManager();
 
-		std::vector<std::pair<u32, u32>> load_mesh(const std::string& fname);
+		std::vector<std::pair<u32, u32>> generate_meshes_from_gltf(const Loader::GLTFScene& scene);
 		inline const Mesh& get_mesh_by_id(u32 id){ return mMeshes[id]; }
 		inline const Material& get_material_by_id(u32 id) { return mMaterials[id]; }
 	private:

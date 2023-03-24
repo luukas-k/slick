@@ -6,6 +6,8 @@
 #include "utility/Timer.h"
 #include "utility/UUID.h"
 #include "utility/FileWatcher.h"
+#include "utility/CommandQueue.h"
+#include "utility/ThreadPool.h"
 
 #include "ecs/Manager.h"
 
