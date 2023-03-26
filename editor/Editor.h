@@ -35,6 +35,7 @@ namespace Slick::Editor {
 		Utility::ThreadPool mPool;
 		Utility::CommandQueue mQueue;
 		Audio::AudioDevice mAudio;
+		bool mShowUI;
 	};
 
 	class ServerLayer {

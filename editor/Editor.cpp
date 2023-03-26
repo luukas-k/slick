@@ -15,7 +15,8 @@ EditorLayer::EditorLayer()
 	:
 	mActiveEntity(0),
 	mEditorScene(mResources),
-	mSensitivity(0.05)
+	mSensitivity(0.05),
+	mShowUI(true)
 {
 	mEditorScene.register_system_dynamic(mRenderer);
 	mEditorScene.register_system_fixed(mPhysics);
@@ -129,48 +130,20 @@ void camera_panel(Gfx::Camera& cam, float& sens) {
 	});
 }
 
-void EditorLayer::update(App::Application& app) {
-	float dt = (float)mTimer.elapsed();
-	mTimer.reset();
+void audio_panel(Audio::AudioDevice& audio) {
+	UI::window("Audio", [&]() {
+		if (UI::button("Mute")) {
+			audio.mute();
+		}
+		if (UI::button("Unmute")) {
+			audio.unmute();
+		}
+		UI::slider("Volume", 0.f, 1.f, audio.volume());
+	});
+}
 
-	mRenderer.set_viewport({ 0, 0, app.surface().width(), app.surface().height() });
-	mQueue.run_commands();
-
-	mInput.update();
-	
-	Math::fVec3 movement{
-		mInput.key_state(Input::Key::Key_A) * -1.f + mInput.key_state(Input::Key::Key_D) * 1.f,
-		mInput.key_state(Input::Key::Key_Shift) * -1.f + mInput.key_state(Input::Key::Key_Space) * 1.f,
-		mInput.key_state(Input::Key::Key_S) * 1.f + mInput.key_state(Input::Key::Key_W) * -1.f
-	};
-
-	float speed = mInput.key_state(Input::Key::Key_Ctrl) ? 5.f : 1.f;
-	auto& cam = mEditorScene.camera();
-	cam.translate_local(movement * speed * dt);
-	
-	if (mInput.button_state(Input::Button::Button_Left))
-		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * mSensitivity, (float)-mInput.cursor_dx() * mSensitivity, 0.f });
-
-	auto data = UI::get_ui_data();
-	i32 w = app.surface().width();
-	i32 h = app.surface().height();
-	data->vp = { 0, 0, w, h };
-	cam.set_aspect_ratio((float)w / h);
-
-	glViewport(0, 0, w, h);
-	glClearColor(.6f, .6f, 1.f, 1.f);
-	glClearDepth(1.f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	mEditorScene.update(dt);
-
-	UI::frame([&]() {
-		tool_panel(*this);
-		entity_panel(mEditorScene, mActiveEntity);
-		scene_hierarchy_panel(mEditorScene, mActiveEntity);
-		camera_panel(mEditorScene.camera(), mSensitivity);
-
-		/*UI::window("Network window", [&]() {
+void network_panel() {
+	/*UI::window("Network window", [&]() {
 			UI::container("Client", [&]() {
 				if (!mConnection.is_connected()) {
 					if (UI::button("Connect")) {
@@ -203,22 +176,75 @@ void EditorLayer::update(App::Application& app) {
 				}
 			});
 		});*/
-		UI::window("Log", [&]() {
-			for (u32 i = 0; i < mLogHistory.size(); i++) {
-				auto& msg = mLogHistory[mLogHistory.size() - 1 - i];
-				UI::label(msg);
-			}
-		});
-		UI::window("Scene", [&]() {
-			if (UI::button("Save")) {
-				mEditorScene.save_scene("scene.scene");
-			}
-		});
+}
+
+void console_log(const std::vector<std::string>& log_history) {
+	UI::window("Log", [&]() {
+		for (u32 i = 0; i < log_history.size(); i++) {
+			auto& msg = log_history[log_history.size() - 1 - i];
+			UI::label(msg);
+		}
 	});
+}
+
+void EditorLayer::update(App::Application& app) {
+	float dt = (float)mTimer.elapsed();
+	mTimer.reset();
+	
+	mRenderer.set_viewport({ 0, 0, app.surface().width(), app.surface().height() });
+	mQueue.run_commands();
+
+	mInput.update();
+	
+	Math::fVec3 movement{
+		mInput.key_state(Input::Key::Key_A) * -1.f + mInput.key_state(Input::Key::Key_D) * 1.f,
+		mInput.key_state(Input::Key::Key_Shift) * -1.f + mInput.key_state(Input::Key::Key_Space) * 1.f,
+		mInput.key_state(Input::Key::Key_S) * 1.f + mInput.key_state(Input::Key::Key_W) * -1.f
+	};
+
+	float speed = mInput.key_state(Input::Key::Key_Ctrl) ? 5.f : 1.f;
+	auto& cam = mEditorScene.camera();
+	cam.translate_local(movement * speed * dt);
+	
+	if (mInput.button_state(Input::Button::Button_Left))
+		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * mSensitivity, (float)-mInput.cursor_dx() * mSensitivity, 0.f });
+
+	auto data = UI::get_ui_data();
+	i32 w = app.surface().width();
+	i32 h = app.surface().height();
+	data->vp = { 0, 0, w, h };
+	cam.set_aspect_ratio((float)w / h);
+
+	glViewport(0, 0, w, h);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClearDepth(1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	mEditorScene.update(dt);
+
+	if (mShowUI) {
+		UI::frame([&]() {
+			tool_panel(*this);
+			entity_panel(mEditorScene, mActiveEntity);
+			scene_hierarchy_panel(mEditorScene, mActiveEntity);
+			camera_panel(mEditorScene.camera(), mSensitivity);
+			audio_panel(mAudio);
+			console_log(mLogHistory);
+			UI::window("Scene", [&]() {
+				if (UI::button("Save")) {
+					mEditorScene.save_scene("scene.scene");
+				}
+			});
+		});
+	}
 }
 
 void EditorLayer::on_key(Input::Key kc, bool state) {
 	mInput.on_key(kc, state);
+
+	if (kc == Input::Key::Key_P && !state) {
+		mShowUI = !mShowUI;
+	}
 }
 
 void EditorLayer::on_button(Input::Button kc, bool state) {
@@ -284,7 +310,7 @@ ServerLayer::~ServerLayer() {}
 
 void ServerLayer::update(App::Application& app) {
 	if (mServer.is_active()) {
-
+		
 	}
 }
 

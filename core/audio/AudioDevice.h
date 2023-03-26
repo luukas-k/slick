@@ -7,6 +7,8 @@
 namespace Slick::Audio {
 
 	struct AudioData {
+		float volume, target_volume;
+
 		float t;
 	};
 
@@ -15,9 +17,13 @@ namespace Slick::Audio {
 		AudioDevice();
 		~AudioDevice();
 
+		inline float& volume() { return mData.target_volume; }
+		void mute();
+		void unmute();
 	private:
 		PaStream* mOutput;
 		AudioData mData;
+		float mMutedVolume;
 	};
 
 }
