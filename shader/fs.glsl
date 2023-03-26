@@ -131,6 +131,9 @@ void main(){
     color = color / (color + vec3(1.0));
     // color = pow(color, vec3(1.0 / 2.2));
 
-	rColor = vec4(color, get_alpha());
+    float alpha = get_alpha();
+    if(alpha < 0.2)
+        discard;
+	rColor = vec4(color, alpha);
 }
 

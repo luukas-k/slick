@@ -25,6 +25,7 @@ public:
 	void set_rotation(Math::fVec3 rot);
 
 	inline Math::fVec3& pos() { return mPosition; }
+	inline float& fov() { return mFov; }
 private:
 	float mFov, mAspectRatio;
 	Math::fVec3 mPosition, mRotation;

@@ -14,7 +14,8 @@ struct Message {
 EditorLayer::EditorLayer()
 	:
 	mActiveEntity(0),
-	mEditorScene(mResources)
+	mEditorScene(mResources),
+	mSensitivity(0.05)
 {
 	mEditorScene.register_system_dynamic(mRenderer);
 	mEditorScene.register_system_fixed(mPhysics);
@@ -43,10 +44,96 @@ Slick::Editor::EditorLayer::~EditorLayer() {
 	Utility::unregister_log_handler();
 }
 
+
+void entity_panel(App::Scene& scene, u32& active_entity) {
+	UI::window("Entity panel", [&](){
+		UI::container("Entity", [&]() {
+			if (active_entity == 0) {
+				UI::label("No active ent");
+				return;
+			}
+
+			if (UI::button("Delete")) {
+				scene.destroy_entity(active_entity);
+				active_entity = 0;
+			}
+
+			auto tf = scene.get_component<TransformComponent>(active_entity);
+			if (tf) {
+				UI::container("Transform", [&]() {
+					UI::slider("x", -100.f, 100.f, tf->position.x);
+					UI::slider("y", -100.f, 100.f, tf->position.y);
+					UI::slider("z", -100.f, 100.f, tf->position.z);
+				});
+			}
+			auto lc = scene.get_component<LightComponent>(active_entity);
+			if (lc) {
+				UI::container("Light", [&]() {
+					UI::slider("r", 0.f, 1.f, lc->color.x);
+					UI::slider("g", 0.f, 1.f, lc->color.y);
+					UI::slider("b", 0.f, 1.f, lc->color.z);
+				});
+			}
+		});
+	});
+}
+
+void scene_hierarchy_panel(App::Scene& scene, u32& active_entity) {
+	UI::window("Scene hierarchy", [&]() {
+		UI::container("Entities", [&]() {
+			scene.view([&](u32 ent) {
+				if (UI::button(scene.get_name(ent))) {
+					active_entity = ent;
+				}
+			});
+		});
+	});
+}
+
+void tool_panel(EditorLayer& editor) {
+	UI::window("Primary window", [&]() {
+		UI::container("Tools", [&]() {
+			if (UI::button("Reset Camera Position")) {
+				editor.active_scene().camera().set_position({0.f, 5.f, 0.f});
+			}
+			if (UI::button("Add light.")) {
+				Utility::Log("Create light.");
+
+				auto [ent, tc, lc] = editor.active_scene().create_entity<TransformComponent, LightComponent>("Name");
+				tc->position = editor.active_scene().camera().pos();
+				tc->rotation = { 0.f, 0.f, 0.f, 1.f };
+				lc->color = { 1.f, 1.f, 1.f };
+			}
+			if (UI::button("Load")) {
+				editor.load_to_scene("model/sponza.gltf", editor.active_scene().camera().pos());
+			}
+		});
+	});
+}
+
+void camera_panel(Gfx::Camera& cam, float& sens) {
+	UI::window("Camera", [&]() {
+		UI::container("Position", [&]() {
+			UI::slider("x", -100.f, 100.f, cam.pos().x);
+			UI::slider("y", -100.f, 100.f, cam.pos().y);
+			UI::slider("z", -100.f, 100.f, cam.pos().z);
+		});
+		UI::container("Fov", [&]() {
+			float fov = cam.fov() * (180.f / 3.1415f);
+			UI::slider("fov", 0.f, 180.f, fov);
+			cam.fov() = fov * (3.1415f / 180.f);
+		});
+		UI::container("Sensitivity", [&]() {
+			UI::slider("sens", 0.f, 1.f, sens);
+		});
+	});
+}
+
 void EditorLayer::update(App::Application& app) {
 	float dt = (float)mTimer.elapsed();
 	mTimer.reset();
 
+	mRenderer.set_viewport({ 0, 0, app.surface().width(), app.surface().height() });
 	mQueue.run_commands();
 
 	mInput.update();
@@ -57,13 +144,12 @@ void EditorLayer::update(App::Application& app) {
 		mInput.key_state(Input::Key::Key_S) * 1.f + mInput.key_state(Input::Key::Key_W) * -1.f
 	};
 
-	float sensitivity = 0.01f;
 	float speed = mInput.key_state(Input::Key::Key_Ctrl) ? 5.f : 1.f;
 	auto& cam = mEditorScene.camera();
 	cam.translate_local(movement * speed * dt);
 	
 	if (mInput.button_state(Input::Button::Button_Left))
-		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * sensitivity, (float)-mInput.cursor_dx() * sensitivity, 0.f });
+		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * mSensitivity, (float)-mInput.cursor_dx() * mSensitivity, 0.f });
 
 	auto data = UI::get_ui_data();
 	i32 w = app.surface().width();
@@ -72,69 +158,18 @@ void EditorLayer::update(App::Application& app) {
 	cam.set_aspect_ratio((float)w / h);
 
 	glViewport(0, 0, w, h);
-	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClearColor(.6f, .6f, 1.f, 1.f);
+	glClearDepth(1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	mEditorScene.update(dt);
 
 	UI::frame([&]() {
-		UI::window("Primary window", [&]() {
-			UI::container("Tools", [&]() {
-				if (UI::button("Reset Camera Position")) {
-					mEditorScene.camera().set_position({0.f, 5.f, 0.f});
-				}
-				if (UI::button("Add light.")) {
-					Utility::Log("Create light.");
+		tool_panel(*this);
+		entity_panel(mEditorScene, mActiveEntity);
+		scene_hierarchy_panel(mEditorScene, mActiveEntity);
+		camera_panel(mEditorScene.camera(), mSensitivity);
 
-					auto [ent, tc, lc] = mEditorScene.create_entity<TransformComponent, LightComponent>("Name");
-					tc->position = mEditorScene.camera().pos();
-					tc->rotation = { 0.f, 0.f, 0.f, 1.f };
-					lc->color = { 1.f, 1.f, 1.f };
-				}
-				if (UI::button("Load")) {
-					load_to_scene("model/sponza.gltf", mEditorScene.camera().pos());
-				}
-			});
-		});
-		UI::window("Entity panel", [&](){
-			UI::container("Entity", [&]() {
-				if (mActiveEntity == 0) {
-					UI::label("No active ent");
-					return;
-				}
-
-				if (UI::button("Delete")) {
-					mEditorScene.destroy_entity(mActiveEntity);
-					mActiveEntity = 0;
-				}
-
-				auto tf = mEditorScene.get_component<TransformComponent>(mActiveEntity);
-				if (tf) {
-					UI::container("Transform", [&]() {
-						UI::slider("x", -100.f, 100.f, tf->position.x);
-						UI::slider("y", -100.f, 100.f, tf->position.y);
-						UI::slider("z", -100.f, 100.f, tf->position.z);
-					});
-				}
-				auto lc = mEditorScene.get_component<LightComponent>(mActiveEntity);
-				if (lc) {
-					UI::container("Light", [&]() {
-						UI::slider("r", 0.f, 1.f, lc->color.x);
-						UI::slider("g", 0.f, 1.f, lc->color.y);
-						UI::slider("b", 0.f, 1.f, lc->color.z);
-					});
-				}
-			});
-		});
-		UI::window("Secondary window", [&]() {
-			UI::container("Entities", [&]() {
-				mEditorScene.view([&](u32 ent) {
-					if (UI::button(mEditorScene.get_name(ent))) {
-						mActiveEntity = ent;
-					}
-				});
-			});
-		});
 		/*UI::window("Network window", [&]() {
 			UI::container("Client", [&]() {
 				if (!mConnection.is_connected()) {

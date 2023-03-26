@@ -1,12 +1,14 @@
 #include "RenderSystem.h"
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 namespace Slick::Gfx {
 
 	RenderSystem::RenderSystem()
 		:
-		mProgram("shader/vs.glsl", "shader/fs.glsl") {
+		mProgram("shader/vs.glsl", "shader/fs.glsl"),
+		mRenderTarget(1920, 1080, { { TextureFormat::RGBA }, { TextureFormat::Depth } })
+	{
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 	}
@@ -15,11 +17,11 @@ namespace Slick::Gfx {
 
 	u32 format_type(App::Format f) {
 		switch (f) {
-		case App::Format::Float4: return GL_FLOAT;
-		case App::Format::Float3: return GL_FLOAT;
-		case App::Format::Float2: return GL_FLOAT;
-		case App::Format::Float1: return GL_FLOAT;
-		case App::Format::UInt16: return GL_UNSIGNED_SHORT;
+			case App::Format::Float4: return GL_FLOAT;
+			case App::Format::Float3: return GL_FLOAT;
+			case App::Format::Float2: return GL_FLOAT;
+			case App::Format::Float1: return GL_FLOAT;
+			case App::Format::UInt16: return GL_UNSIGNED_SHORT;
 		}
 		Utility::Assert(false);
 		return 0;
@@ -27,17 +29,19 @@ namespace Slick::Gfx {
 
 	u32 format_count(App::Format f) {
 		switch (f) {
-		case App::Format::Float4: return 4;
-		case App::Format::Float3: return 3;
-		case App::Format::Float2: return 2;
-		case App::Format::Float1: return 1;
-		case App::Format::UInt16: return 1;
+			case App::Format::Float4: return 4;
+			case App::Format::Float3: return 3;
+			case App::Format::Float2: return 2;
+			case App::Format::Float1: return 1;
+			case App::Format::UInt16: return 1;
 		}
 		Utility::Assert(false);
 		return 0;
 	}
 
 	void RenderSystem::update(App::Scene& scene, ECS::Manager& mgr, float dt) {
+		// mRenderTarget.bind();
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -140,6 +144,15 @@ namespace Slick::Gfx {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rc.indices.buffer);
 			glDrawElements(GL_TRIANGLES, (u32)rc.drawCount, format_type(rc.indices.fmt), (const void*)(intptr_t)rc.indices.offset);
 		});
+
+		/*mRenderTarget.unbind();
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mRenderTarget.id());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		glBlitFramebuffer(0, 0, 1920, 1080, 0, 0, mScreen.w, mScreen.h, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);*/
 	}
 
 }

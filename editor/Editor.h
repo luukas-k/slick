@@ -17,6 +17,8 @@ namespace Slick::Editor {
 		void on_scroll(i32, i32);
 
 		void load_to_scene(const std::string& fname, Math::fVec3 pos);
+
+		inline App::Scene& active_scene() { return mEditorScene; }
 	private:
 		App::ResourceManager mResources;
 		App::Scene mEditorScene;
@@ -24,6 +26,7 @@ namespace Slick::Editor {
 		Utility::Timer mTimer;
 		// float mLastUpdate, mLastRender;
 		// float mFrameDelta;
+		float mSensitivity;
 		Net::Connection mConnection;
 		u32 mActiveEntity;
 		std::vector<std::string> mLogHistory;
@@ -31,6 +34,7 @@ namespace Slick::Editor {
 		Physics::PhysicsSystem mPhysics;
 		Utility::ThreadPool mPool;
 		Utility::CommandQueue mQueue;
+		Audio::AudioDevice mAudio;
 	};
 
 	class ServerLayer {
