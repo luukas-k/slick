@@ -96,7 +96,7 @@ void EditorLayer::update(App::Application& app) {
 				}
 			});
 		});
-		UI::window("Secondary window", [&]() {
+		UI::window("Entity panel", [&](){
 			UI::container("Entity", [&]() {
 				if (mActiveEntity == 0) {
 					UI::label("No active ent");
@@ -111,12 +111,22 @@ void EditorLayer::update(App::Application& app) {
 				auto tf = mEditorScene.get_component<TransformComponent>(mActiveEntity);
 				if (tf) {
 					UI::container("Transform", [&]() {
-						UI::slider("x", -1000.f, 1000.f, tf->position.x);
-						UI::slider("y", -1000.f, 1000.f, tf->position.y);
-						UI::slider("z", -1000.f, 1000.f, tf->position.z);
+						UI::slider("x", -100.f, 100.f, tf->position.x);
+						UI::slider("y", -100.f, 100.f, tf->position.y);
+						UI::slider("z", -100.f, 100.f, tf->position.z);
+					});
+				}
+				auto lc = mEditorScene.get_component<LightComponent>(mActiveEntity);
+				if (lc) {
+					UI::container("Light", [&]() {
+						UI::slider("r", 0.f, 1.f, lc->color.x);
+						UI::slider("g", 0.f, 1.f, lc->color.y);
+						UI::slider("b", 0.f, 1.f, lc->color.z);
 					});
 				}
 			});
+		});
+		UI::window("Secondary window", [&]() {
 			UI::container("Entities", [&]() {
 				mEditorScene.view([&](u32 ent) {
 					if (UI::button(mEditorScene.get_name(ent))) {

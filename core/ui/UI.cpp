@@ -62,6 +62,11 @@ namespace Slick::UI {
 	};
 
 	struct UISlider {
+		// Elements
+		Gfx::Viewport vp_container;
+		Gfx::Viewport vp_grabber;
+
+		// Data
 		float min, max;
 		float value;
 	};
@@ -214,11 +219,12 @@ namespace Slick::UI {
 			if (e.type == type && e.label == label) {
 				u32 skipped = i - s_Context->current->current_index;
 				if (skipped > 0) {
-					// Utility::Log("[UI]: Skipped n = ", skipped, " and deleted them.");
+					// Remove skipped UI elements
 					s_Context->current->children.erase(s_Context->current->children.begin() + s_Context->current->current_index, s_Context->current->children.begin() + s_Context->current->current_index + skipped);
 				}
 				s_Context->current->current_index++;
 				e.current_index = 0;
+				e.is_new = false;
 				return &e;
 			}
 		}
@@ -341,7 +347,7 @@ namespace Slick::UI {
 			}
 			case ElementType::Slider:
 			{
-				return { 0, 0, 100, 20 };
+				return { 0, 0, 200, 20 };
 			}
 		}
 		Utility::Assert(false, "Unknown type.");
@@ -558,13 +564,12 @@ namespace Slick::UI {
 			}
 			case ElementType::Slider:
 			{
-				Gfx::Viewport slider_container = e.vp;
-				float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
+				auto& sldr = e.as_slider;
+				
+				draw_vp(sldr.vp_container, { 0.2f, 0.2f, 0.2f }, 5);
+				draw_vp(sldr.vp_grabber, { 0.4f, 0.2f, 0.2f }, 5);
+				draw_text(sldr.vp_container.offset(5, 5), format(e.as_slider.value));
 
-				Gfx::Viewport slider_grabber = slider_container.shrink((i32)(80.f * factor), 0, 0, 0).left(20);
-
-				draw_vp(slider_container, { 0.2f, 0.2f, 0.2f }, 5);
-				draw_vp(slider_grabber, { 0.4f, 0.2f, 0.2f }, 5);
 				return;
 			}
 		}
@@ -580,7 +585,6 @@ namespace Slick::UI {
 		i32 min = 99999999;
 		for (auto& s : e.parent->children) {
 			if (s.as_window.z_index < min) {
-
 				min = s.as_window.z_index;
 			}
 		}
@@ -659,6 +663,22 @@ namespace Slick::UI {
 
 				break;
 			}
+			case ElementType::Slider: 
+			{
+				auto& sldr = e.as_slider;
+				
+				float newVal = Math::clamp(sldr.min, sldr.max, sldr.min + ((float)(ctx->data.cx - 10 - e.vp.x)) / (e.vp.w - 20) * (sldr.max - sldr.min));
+				if (is_hovered(e.vp) && ctx->clicked) {
+					sldr.value = newVal;
+				}
+
+				sldr.vp_container = e.vp;
+				float factor = (e.as_slider.value - e.as_slider.min) / (e.as_slider.max - e.as_slider.min);
+
+				sldr.vp_grabber = sldr.vp_container.shrink((i32)((e.vp.w - 20) * factor), 0, 0, 0).left(20);
+
+				break;
+			}
 		}
 
 		for (auto& c : e.children) {
@@ -698,9 +718,16 @@ namespace Slick::UI {
 
 	void slider(const std::string& label, float min, float max, float& v) {
 		UIElement* elem = get_or_create(ElementType::Slider, label);
+
+		if (elem->is_new) {
+			elem->as_slider.value = v;
+		}
+		else {
+			v = elem->as_slider.value;
+		}
+
 		elem->as_slider.min = min;
 		elem->as_slider.max = max;
-		elem->as_slider.value = v;
 	}
 
 	bool begin_tree(const std::string& label) {
@@ -708,7 +735,6 @@ namespace Slick::UI {
 
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
-			elem->is_new = false;
 		}
 
 		if (elem->as_container.is_open) {
@@ -727,8 +753,6 @@ namespace Slick::UI {
 
 		if (elem->is_new) {
 			elem->as_container.is_open = true;
-			elem->is_new = false;
-			// elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 		}
 
 		if (elem->as_container.is_open) {
@@ -742,28 +766,15 @@ namespace Slick::UI {
 		set_current_as_parent();
 	}
 
-	std::pair<i32, i32> new_window_position() {
-		if (s_Context->root.children.size() > 1) {
-			auto& last = s_Context->root.children[s_Context->root.children.size() - 1];
-			return {last.as_window.offset_x - 25, -last.as_window.offset_y - 25};
-		}
-		return {0, 0};
-	}
-
-
 	bool begin_window(const std::string& label) {
 		UIElement* elem = get_or_create(ElementType::Window, label);
 
 		if (elem->is_new) {
 			elem->as_window.minimized = false;
 			elem->as_container.is_open = true;
-			// elem->as_container.color = { (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX };
 
-			auto[px, py] = new_window_position();
-			elem->as_window.offset_x = px;
-			elem->as_window.offset_y = py;
-			elem->as_window.size_x = 250;
-			elem->as_window.size_y = 250;
+			elem->as_window.size_x = 300;
+			elem->as_window.size_y = 300;
 			elem->as_window.scroll_y = 0;
 			elem->as_window.scroll_y = 0;
 			elem->as_window.z_index = 0;
@@ -776,8 +787,6 @@ namespace Slick::UI {
 					elem->as_window.minimized = cwd.minimized;
 				}
 			}
-
-			elem->is_new = false;
 		}
 
 		if (elem->as_container.is_open) {
