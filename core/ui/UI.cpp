@@ -52,6 +52,11 @@ namespace Slick {
 namespace Slick::UI {
 
 	struct UIContainer {
+		// Elements
+		Gfx::Viewport vp_header;
+		Gfx::Viewport vp_content;
+		Gfx::Viewport vp_minimize;
+		// Data
 		bool is_open;
 		ContainerLayout layout;
 	};
@@ -68,7 +73,8 @@ namespace Slick::UI {
 
 		// Data
 		float min, max;
-		float value;
+		float value, new_value;
+		bool has_changed;
 	};
 
 	struct UIWindow {
@@ -403,6 +409,7 @@ namespace Slick::UI {
 		case ElementType::Container:
 		{
 			auto [cx, cy, ew, eh] = calculate_size(e);
+			ew = ew < 100 ? 100 : ew;
 
 			e.vp = Gfx::Viewport{ vp.x, vp.y + vp.h - eh, ew, eh };
 			Gfx::Viewport header = e.vp.top(25);
@@ -427,12 +434,19 @@ namespace Slick::UI {
 			else {
 				Utility::Assert(false, "Unknown layout.");
 			}
+
+			auto& cont = e.as_container;
+			cont.vp_header = e.vp.top(25);
+			cont.vp_minimize = header.right(25).shrink(3, 3, 3, 3);
+			cont.vp_content = e.vp.shrink(0, 0, 25, 0);
+
 			return;
 		}
 		case ElementType::Button:
 		{
 			auto [x, y, w, h] = calculate_size(e);
 			e.vp = vp.left(w).top(h);
+
 			return;
 		}
 		case ElementType::Label:
@@ -534,14 +548,15 @@ namespace Slick::UI {
 			}
 			case ElementType::Container:
 			{
-				Gfx::Viewport header = e.vp.top(25);
-				Gfx::Viewport minimize = header.right(25);
-				Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
+				auto& cont = e.as_container;
+				// Gfx::Viewport header = e.vp.top(25);
+				// Gfx::Viewport minimize = header.right(25);
+				// Gfx::Viewport content = e.vp.shrink(0, 0, 25, 0);
 
-				draw_vp(header, { 0.3f, 0.3f, 0.3f }, 10);
-				draw_vp(content, { 0.2f, 0.2f, 0.2f }, 10);
-				draw_vp(minimize.shrink(3, 3, 3, 3), { 1.f, 1.f, 0.f }, 10);
-				draw_text(header.offset(5, 4), e.label);
+				draw_vp(cont.vp_header, { 0.3f, 0.3f, 0.3f }, 10);
+				draw_vp(cont.vp_content, { 0.2f, 0.2f, 0.2f }, 10);
+				draw_vp(cont.vp_minimize, { 1.f, 1.f, 0.f }, 10);
+				draw_text(cont.vp_header.offset(5, 4), e.label);
 
 				for (auto& c : e.children) {
 					render(ctx, c);
@@ -669,7 +684,11 @@ namespace Slick::UI {
 				
 				float newVal = Math::clamp(sldr.min, sldr.max, sldr.min + ((float)(ctx->data.cx - 10 - e.vp.x)) / (e.vp.w - 20) * (sldr.max - sldr.min));
 				if (is_hovered(e.vp) && ctx->clicked) {
-					sldr.value = newVal;
+					sldr.new_value = newVal;
+					sldr.has_changed = true;
+				}
+				else {
+					sldr.has_changed = false;
 				}
 
 				sldr.vp_container = e.vp;
@@ -719,11 +738,10 @@ namespace Slick::UI {
 	void slider(const std::string& label, float min, float max, float& v) {
 		UIElement* elem = get_or_create(ElementType::Slider, label);
 
-		if (elem->is_new) {
+		elem->as_slider.value = v;
+		if (elem->as_slider.has_changed) {
+			v = elem->as_slider.new_value;
 			elem->as_slider.value = v;
-		}
-		else {
-			v = elem->as_slider.value;
 		}
 
 		elem->as_slider.min = min;
