@@ -8,12 +8,38 @@ namespace Slick::Gfx {
 	
 	RenderTarget::RenderTarget(u32 w, u32 h, const std::vector<RTTextureSpec>& textures) 
 		:
-		mFramebuffer(0), mAttachments({})
+		mFramebuffer(0), mAttachments({}),
+		mWidth(0), mHeight(0), mSpec(textures)
 	{
+		resize(w, h);
+	}
+	
+	RenderTarget::~RenderTarget() {
+		for (auto& attach : mAttachments) {
+			glDeleteTextures(1, &attach);
+		}
+		glDeleteFramebuffers(1, &mFramebuffer);
+	}
+
+	void RenderTarget::resize(u32 w, u32 h) {
+		if (mWidth == w && mHeight == h) {
+			return;
+		}
+		mWidth = w;
+		mHeight = h;
+
+		if (mFramebuffer) {
+			glDeleteFramebuffers(1, &mFramebuffer);
+			for (auto& attach : mAttachments) {
+				glDeleteTextures(1, &attach);
+			}
+			mAttachments.clear();
+		}
+
 		glGenFramebuffers(1, &mFramebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
 
-		for (auto& t : textures) {
+		for (auto& t : mSpec) {
 			u32 tex{};
 			glGenTextures(1, &tex);
 			glBindTexture(GL_TEXTURE_2D, tex);
@@ -48,13 +74,6 @@ namespace Slick::Gfx {
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-	
-	RenderTarget::~RenderTarget() {
-		for (auto& attach : mAttachments) {
-			glDeleteTextures(1, &attach);
-		}
-		glDeleteFramebuffers(1, &mFramebuffer);
 	}
 
 	void RenderTarget::bind() {

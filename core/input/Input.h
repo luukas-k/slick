@@ -90,6 +90,7 @@ namespace Slick::Input {
 		inline bool key_state(Key kc) const { return mKeys[(u32)kc].state; }
 		inline bool button_state(Button kc) const { return mButtons[(u32)kc].state; }
 		inline i32 cursor_x() const { return mCursorX; }
+		inline i32 cursor_y() const { return mCursorY; }
 		inline i32 cursor_dx() const { return mCursorState == 2 ? (mCursorX - mOldCursorX) : 0; }
 		inline i32 cursor_dy() const { return mCursorState == 2 ? (mCursorY - mOldCursorY) : 0; }
 	private:

@@ -35,6 +35,9 @@ namespace Slick::Editor {
 		Utility::CommandQueue mQueue;
 		Audio::AudioDevice mAudio;
 		bool mShowUI;
+
+		bool mTranslating;
+		Gfx::SelectedAxis mTranslationAxis;
 	};
 
 	class ServerLayer {

@@ -16,7 +16,8 @@ EditorLayer::EditorLayer()
 	mActiveEntity(0),
 	mEditorScene(mResources),
 	mSensitivity(0.05),
-	mShowUI(true)
+	mShowUI(true),
+	mTranslating(false)
 {
 	mEditorScene.register_system_dynamic(mRenderer);
 	mEditorScene.register_system_fixed(mPhysics);
@@ -208,8 +209,53 @@ void EditorLayer::update(App::Application& app) {
 	auto& cam = mEditorScene.camera();
 	cam.translate_local(movement * speed * dt);
 	
-	if (mInput.button_state(Input::Button::Button_Left))
+	if (!mTranslating && mInput.button_state(Input::Button::Button_Left))
 		cam.rotate(Math::fVec3{ (float)mInput.cursor_dy() * mSensitivity, (float)-mInput.cursor_dx() * mSensitivity, 0.f });
+
+	if (mTranslating) {
+		TransformComponent* etf = mEditorScene.get_component<TransformComponent>(mActiveEntity);
+		float tx_speed = 0.01f;
+		switch (mTranslationAxis) {
+			case Gfx::SelectedAxis::Y: 
+			{
+				etf->position.y -= tx_speed * mInput.cursor_dy();
+				break;
+			}
+			case Gfx::SelectedAxis::X: 
+			{
+				etf->position.x += tx_speed * mInput.cursor_dx();
+				break;
+			}
+			case Gfx::SelectedAxis::Z: 
+			{
+				etf->position.z += tx_speed * mInput.cursor_dy();
+				break;
+			}
+			case Gfx::SelectedAxis::XY: 
+			{
+				etf->position.x += tx_speed * mInput.cursor_dx();
+				etf->position.y -= tx_speed * mInput.cursor_dy();
+				break;
+			}
+			case Gfx::SelectedAxis::XZ: 
+			{
+				etf->position.x += tx_speed * mInput.cursor_dx();
+				etf->position.z += tx_speed * mInput.cursor_dy();
+				break;
+			}
+			case Gfx::SelectedAxis::YZ: 
+			{
+				etf->position.y -= tx_speed * mInput.cursor_dy();
+				etf->position.z -= tx_speed * mInput.cursor_dx();
+				break;
+			}
+		}
+		if (!mInput.button_state(Input::Button::Button_Left)) {
+			mTranslating = false;
+		}
+	}
+
+	mDebugRenderer.draw_grid(50, 50);
 
 	auto data = UI::get_ui_data();
 	i32 w = app.surface().width();
@@ -217,16 +263,28 @@ void EditorLayer::update(App::Application& app) {
 	data->vp = { 0, 0, w, h };
 	cam.set_aspect_ratio((float)w / h);
 
+	mDebugRenderer.resize(w, h);
+
 	glViewport(0, 0, w, h);
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClearDepth(1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	mDebugRenderer.submit_quad({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f});
+	if (mActiveEntity != 0) {
+		TransformComponent* etf = mEditorScene.get_component<TransformComponent>(mActiveEntity);
+		
+		if (mInput.key_state(Input::Key::Key_E)) {
+			mEditorScene.camera().pos() = etf->position;
+		}
+
+		auto axis = mDebugRenderer.submit_translate_gizmo(etf->position, mInput.cursor_x(), app.surface().height() - 1 - mInput.cursor_y());
+		if (!mTranslating && mInput.button_state(Input::Button::Button_Left) && axis != Gfx::SelectedAxis::None) {
+			mTranslating = true;
+			mTranslationAxis = axis;
+		}
+	}
 
 	mEditorScene.update(dt);
-
-	Utility::Log("id: ", mDebugRenderer.current_id(500, 500));
 
 	if (mShowUI) {
 		UI::frame([&]() {
@@ -256,8 +314,9 @@ void EditorLayer::on_key(Input::Key kc, bool state) {
 void EditorLayer::on_button(Input::Button kc, bool state) {
 	mInput.on_button(kc, state);
 	auto data = UI::get_ui_data();
-	if (kc == Input::Button::Button_Left)
+	if (kc == Input::Button::Button_Left) {
 		data->clicked = state;
+	}
 }
 
 void EditorLayer::on_cursor_move(i32 x, i32 y) {

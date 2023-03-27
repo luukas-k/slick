@@ -21,6 +21,8 @@ namespace Slick::Gfx {
 		RenderTarget(u32 w, u32 h, const std::vector<RTTextureSpec>& textures);
 		~RenderTarget();
 
+		void resize(u32 w, u32 h);
+
 		void bind();
 		void unbind();
 
@@ -28,9 +30,12 @@ namespace Slick::Gfx {
 		u32 get_attachment(u32 index);
 
 		u32 read_from_buffer_u32(u32 index, i32 x, i32 y);
+		inline u32 width() const { return mWidth; }
+		inline u32 height() const { return mHeight; }
 	private:
-		u32 mFramebuffer;
+		u32 mFramebuffer, mWidth, mHeight;
 		std::vector<u32> mAttachments;
+		std::vector<RTTextureSpec> mSpec;
 	};
 
 }
