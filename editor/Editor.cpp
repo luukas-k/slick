@@ -94,6 +94,7 @@ void scene_hierarchy_panel(App::Scene& scene, u32& active_entity) {
 void tool_panel(EditorLayer& editor) {
 	UI::window("Primary window", [&]() {
 		UI::container("Tools", [&]() {
+			UI::label("FPS: " + std::to_string(100));
 			if (UI::button("Reset Camera Position")) {
 				editor.active_scene().camera().set_position({0.f, 5.f, 0.f});
 			}
