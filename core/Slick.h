@@ -19,6 +19,7 @@
 #include "graphics/Camera.h"
 #include "graphics/Shader.h"
 #include "graphics/Viewport.h"
+#include "graphics/DebugRenderer.h"
 
 #include "ui/UI.h"
 

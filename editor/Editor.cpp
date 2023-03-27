@@ -20,6 +20,7 @@ EditorLayer::EditorLayer()
 {
 	mEditorScene.register_system_dynamic(mRenderer);
 	mEditorScene.register_system_fixed(mPhysics);
+	mEditorScene.register_system_dynamic(mDebugRenderer);
 
 	Utility::register_log_handler([&](const std::string& msg) {
 		mLogHistory.push_back("[" + format(mTimer.elapsed()) + "]: " + msg);
@@ -221,7 +222,11 @@ void EditorLayer::update(App::Application& app) {
 	glClearDepth(1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	mDebugRenderer.submit_quad({0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 0.f});
+
 	mEditorScene.update(dt);
+
+	Utility::Log("id: ", mDebugRenderer.current_id(500, 500));
 
 	if (mShowUI) {
 		UI::frame([&]() {

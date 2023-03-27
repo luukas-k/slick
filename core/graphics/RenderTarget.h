@@ -8,6 +8,7 @@ namespace Slick::Gfx {
 	
 	enum struct TextureFormat {
 		RGBA,
+		U32,
 		Depth,
 	};
 
@@ -25,6 +26,8 @@ namespace Slick::Gfx {
 
 		inline u32 id(){ return mFramebuffer; }
 		u32 get_attachment(u32 index);
+
+		u32 read_from_buffer_u32(u32 index, i32 x, i32 y);
 	private:
 		u32 mFramebuffer;
 		std::vector<u32> mAttachments;

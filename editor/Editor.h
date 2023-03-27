@@ -10,7 +10,6 @@ namespace Slick::Editor {
 		~EditorLayer();
 
 		void update(App::Application& app);
-		u32 mFrames{ 0 };
 		void on_key(Input::Key kc, bool state);
 		void on_button(Input::Button kc, bool state);
 		void on_cursor_move(i32 x, i32 y);
@@ -24,13 +23,13 @@ namespace Slick::Editor {
 		App::Scene mEditorScene;
 		Input::InputManager mInput;
 		Utility::Timer mTimer;
-		// float mLastUpdate, mLastRender;
-		// float mFrameDelta;
+		u32 mFrames{ 0 };
 		float mSensitivity;
 		Net::Connection mConnection;
 		u32 mActiveEntity;
 		std::vector<std::string> mLogHistory;
 		Gfx::RenderSystem mRenderer;
+		Gfx::DebugRenderer mDebugRenderer;
 		Physics::PhysicsSystem mPhysics;
 		Utility::ThreadPool mPool;
 		Utility::CommandQueue mQueue;

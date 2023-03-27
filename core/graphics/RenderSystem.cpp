@@ -156,6 +156,9 @@ namespace Slick::Gfx {
 			glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Math::fVec3), 0);
 
 			glDrawArrays(GL_TRIANGLES, 0, sizeof(positions) / sizeof(positions[0]));
+
+			glDeleteVertexArrays(1, &vao);
+			glDeleteBuffers(1, &vbo);
 		}
 		glEnable(GL_CULL_FACE);
 
