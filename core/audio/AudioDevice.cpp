@@ -12,7 +12,8 @@ namespace Slick::Audio {
 		ad->volume = ad->volume * fac + ad->target_volume * (1.f - fac);
 
 		for (u32 i = 0; i < frameCount; i++) {
-			float v = sin(ad->t) * ad->volume;
+			// float v = sin(ad->t) * ad->volume;
+			float v = 0.f;
 			*(out++) = v;
 			*(out++) = v;
 			ad->t += 0.03f;
@@ -24,7 +25,8 @@ namespace Slick::Audio {
 	AudioDevice::AudioDevice() 
 		:
 		mOutput(nullptr),
-		mData({})
+		mData({}),
+		mMutedVolume(0.f)
 	{
 		Pa_Initialize();
 

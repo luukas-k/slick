@@ -1,16 +1,47 @@
 #include "RenderSystem.h"
 
 #include <glad/glad.h>
+#include <stb_image.h>
 
 namespace Slick::Gfx {
 
 	RenderSystem::RenderSystem()
 		:
 		mProgram("shader/vs.glsl", "shader/fs.glsl"),
+		mSkyShader("shader/vs_sky.glsl", "shader/fs_sky.glsl"),
+		mScreen({0,0,1920,1080}),
 		mRenderTarget(1920, 1080, { { TextureFormat::RGBA }, { TextureFormat::Depth } })
 	{
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
+
+		u32 cube_map{};
+		glGenTextures(1, &cube_map);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cube_map);
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+		auto load_face = [](const std::string& fname, u32 i) {
+			i32 w{}, h{}, c{};
+			u8* data = stbi_load(fname.c_str(), &w, &h, &c, 4);
+
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+			stbi_image_free(data);
+		};
+
+		load_face("skybox/right.jpg", 0);
+		load_face("skybox/left.jpg", 1);
+		load_face("skybox/top.jpg", 2);
+		load_face("skybox/bottom.jpg", 3);
+		load_face("skybox/front.jpg", 4);
+		load_face("skybox/back.jpg", 5);
+
+		mSkybox = cube_map;
 	}
 
 	RenderSystem::~RenderSystem() {}
@@ -40,8 +71,95 @@ namespace Slick::Gfx {
 	}
 
 	void RenderSystem::update(App::Scene& scene, ECS::Manager& mgr, float dt) {
-		// mRenderTarget.bind();
+		auto& cam = scene.camera();
+		Math::fMat4 proj = cam.projection();
+		Math::fMat4 view = cam.view();
+		
+		// Render skybox
+		{
+			glDisable(GL_CULL_FACE);
 
+			mSkyShader.bind();
+			mSkyShader.set_uniform_m4("sys_proj", proj);
+			mSkyShader.set_uniform_m4("sys_view", view);
+
+			u32 vao{}, vbo{};
+			glGenVertexArrays(1, &vao);
+			glBindVertexArray(vao);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, mSkybox);
+			mSkyShader.set_uniform_i1("tex_skybox", 0);
+
+			glGenBuffers(1, &vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+			float s = 250.f;
+			Math::fVec3 positions[] = {
+				// Back
+				{ -s, -s, -s },
+				{ -s,  s, -s },
+				{  s,  s, -s },
+
+				{  s,  s, -s },
+				{  s, -s, -s },
+				{ -s, -s, -s },
+				
+				// Front
+				{ -s, -s,  s },
+				{ -s,  s,  s },
+				{  s,  s,  s },
+
+				{  s,  s,  s },
+				{  s, -s,  s },
+				{ -s, -s,  s },
+				
+				// Left
+				{ -s, -s, -s },
+				{ -s, -s,  s },
+				{ -s,  s,  s },
+
+				{ -s,  s,  s },
+				{ -s,  s, -s },
+				{ -s, -s, -s },
+
+				// Right
+				{  s, -s, -s },
+				{  s, -s,  s },
+				{  s,  s,  s },
+
+				{  s,  s,  s },
+				{  s,  s, -s },
+				{  s, -s, -s },
+				
+				// Top
+				{  -s, s, -s },
+				{  -s, s,  s },
+				{   s, s,  s },
+
+				{   s, s,  s },
+				{   s, s, -s },
+				{  -s, s, -s },
+				
+				// Bottom
+				{  -s, -s, -s },
+				{  -s, -s,  s },
+				{   s, -s,  s },
+
+				{   s, -s,  s },
+				{   s, -s, -s },
+				{  -s, -s, -s },
+			};
+			glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Math::fVec3), 0);
+
+			glDrawArrays(GL_TRIANGLES, 0, sizeof(positions) / sizeof(positions[0]));
+		}
+		glEnable(GL_CULL_FACE);
+
+		// Render world
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -51,10 +169,6 @@ namespace Slick::Gfx {
 		glEnable(GL_CULL_FACE);
 
 		auto& resources = scene.resources();
-
-		auto& cam = scene.camera();
-		Math::fMat4 proj = cam.projection();
-		Math::fMat4 view = cam.view();
 
 		mProgram.bind();
 

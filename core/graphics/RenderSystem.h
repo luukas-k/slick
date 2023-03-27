@@ -23,9 +23,9 @@ namespace Slick::Gfx {
 		void update(App::Scene& scene, ECS::Manager& mgr, float dt);
 		inline void set_viewport(Viewport vp) { mScreen = vp; }
 	private:
-		u32 vao{};
+		u32 vao{}, mSkybox;
 		Viewport mScreen;
-		Shader mProgram;
+		Shader mProgram, mSkyShader;
 		RenderTarget mRenderTarget;
 	};
 

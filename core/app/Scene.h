@@ -69,6 +69,7 @@ namespace Slick::App {
 
 		inline Gfx::Camera& camera() { return mCamera; }
 		inline ResourceManager& resources() { return mResources; }
+
 		// inline ECS::Manager& manager() { return mManager; }
 	private:
 		ResourceManager& mResources;
