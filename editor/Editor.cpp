@@ -144,38 +144,38 @@ void audio_panel(Audio::AudioDevice& audio) {
 
 void network_panel() {
 	/*UI::window("Network window", [&]() {
-			UI::container("Client", [&]() {
-				if (!mConnection.is_connected()) {
-					if (UI::button("Connect")) {
-						mConnection.connect("127.0.0.1", 5232);
-					}
+		UI::container("Client", [&]() {
+			if (!mConnection.is_connected()) {
+				if (UI::button("Connect")) {
+					mConnection.connect("127.0.0.1", 5232);
 				}
-				else {
-					if (UI::button("Send hello")) {
-						// mConnection.send("hello");
-						mConnection.send<Message>(Message{
-							.a = 5,
-							.b = 16
-						});
-					}
-					if (UI::button("Disconnect")) {
-						mConnection.disconnect();
-					}
+			}
+			else {
+				if (UI::button("Send hello")) {
+					// mConnection.send("hello");
+					mConnection.send<Message>(Message{
+						.a = 5,
+						.b = 16
+					});
 				}
-			});
-			UI::container("Server", [&]() {
-				if (!app.get_layer<ServerLayer>()->is_active()) {
-					if (UI::button("Start")) {
-						app.get_layer<ServerLayer>()->start_server();
-					}
+				if (UI::button("Disconnect")) {
+					mConnection.disconnect();
 				}
-				else {
-					if (UI::button("Stop")) {
-						app.get_layer<ServerLayer>()->stop_server();
-					}
+			}
+		});
+		UI::container("Server", [&]() {
+			if (!app.get_layer<ServerLayer>()->is_active()) {
+				if (UI::button("Start")) {
+					app.get_layer<ServerLayer>()->start_server();
 				}
-			});
-		});*/
+			}
+			else {
+				if (UI::button("Stop")) {
+					app.get_layer<ServerLayer>()->stop_server();
+				}
+			}
+		});
+	});*/
 }
 
 void console_log(const std::vector<std::string>& log_history) {
